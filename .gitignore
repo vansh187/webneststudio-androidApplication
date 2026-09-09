@@ -1,0 +1,17 @@
+# Reference material — these are separate upstream repos (web frontend + FastAPI
+# backend) kept locally for design/API reference. Not part of this app's history.
+/.reference/
+
+# Local environment file — real values come from .env.example or code defaults.
+WebNestStudioApp/.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# Scratch
+*.log
