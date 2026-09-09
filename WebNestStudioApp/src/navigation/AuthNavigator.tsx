@@ -10,20 +10,21 @@ import { AuthStackParamList } from './types';
 const Stack = createNativeStackNavigator<AuthStackParamList>();
 
 /**
- * Shown to everyone who is not signed in. Account creation is the entry point —
- * the rest of the app is sealed until a session exists.
+ * Shown to everyone who is not signed in. Login is the entry point; new users
+ * reach Signup from the "Create an account" link. The rest of the app is sealed
+ * until a session exists.
  */
 export function AuthNavigator() {
   return (
     <Stack.Navigator
-      initialRouteName="Signup"
+      initialRouteName="Login"
       screenOptions={{
         headerShown: false,
         contentStyle: { backgroundColor: colors.bgBase },
         animation: 'slide_from_right',
       }}>
-      <Stack.Screen name="Signup" component={SignupScreen} />
       <Stack.Screen name="Login" component={LoginScreen} />
+      <Stack.Screen name="Signup" component={SignupScreen} />
       <Stack.Screen name="VerifyOtp" component={VerifyOtpScreen} />
     </Stack.Navigator>
   );
