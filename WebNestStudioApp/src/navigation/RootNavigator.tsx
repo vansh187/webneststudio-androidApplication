@@ -15,6 +15,11 @@ import Icon from 'react-native-vector-icons/Feather';
 import { Gradient } from '../components/Gradient';
 import { BlogDetailScreen } from '../screens/BlogDetailScreen';
 import { BlogScreen } from '../screens/BlogScreen';
+import { ChatListScreen } from '../screens/chat/ChatListScreen';
+import { ChatRoomScreen } from '../screens/chat/ChatRoomScreen';
+import { GroupInfoScreen } from '../screens/chat/GroupInfoScreen';
+import { NewChatScreen } from '../screens/chat/NewChatScreen';
+import { NewGroupScreen } from '../screens/chat/NewGroupScreen';
 import { ContactScreen } from '../screens/ContactScreen';
 import { HomeScreen } from '../screens/HomeScreen';
 import { PortfolioDetailScreen } from '../screens/PortfolioDetailScreen';
@@ -26,19 +31,22 @@ import { SplashScreen } from '../screens/SplashScreen';
 import { StoryScreen } from '../screens/StoryScreen';
 import { VisitingCardScreen } from '../screens/VisitingCardScreen';
 import { useAuth } from '../features/auth/AuthContext';
+import { useUnreadCount } from '../features/chat/chatQueries';
 import { AuthNavigator } from './AuthNavigator';
 import { colors } from '../theme/colors';
 import { radii } from '../theme/spacing';
 import { font } from '../theme/typography';
-import { MainTabParamList, RootStackParamList } from './types';
+import { ChatStackParamList, MainTabParamList, RootStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<MainTabParamList>();
+const ChatStack = createNativeStackNavigator<ChatStackParamList>();
 
 const tabIcons: Record<keyof MainTabParamList, string> = {
   Home: 'home',
   Work: 'grid',
   Blog: 'book-open',
+  Chat: 'message-circle',
   Contact: 'send',
   Profile: 'user',
 };
@@ -103,12 +111,41 @@ function tabScreenOptions({ route }: { route: { name: keyof MainTabParamList } }
   };
 }
 
+function ChatNavigator() {
+  return (
+    <ChatStack.Navigator screenOptions={stackScreenOptions}>
+      <ChatStack.Screen
+        name="ChatList"
+        component={ChatListScreen}
+        options={{ headerShown: false }}
+      />
+      <ChatStack.Screen name="ChatRoom" component={ChatRoomScreen} options={{ title: 'Chat' }} />
+      <ChatStack.Screen name="NewChat" component={NewChatScreen} options={{ title: 'New chat' }} />
+      <ChatStack.Screen name="NewGroup" component={NewGroupScreen} options={{ title: 'New group' }} />
+      <ChatStack.Screen
+        name="GroupInfo"
+        component={GroupInfoScreen}
+        options={{ title: 'Details' }}
+      />
+    </ChatStack.Navigator>
+  );
+}
+
 function MainTabs() {
+  const unread = useUnreadCount();
   return (
     <Tab.Navigator screenOptions={tabScreenOptions}>
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Work" component={PortfolioScreen} />
       <Tab.Screen name="Blog" component={BlogScreen} />
+      <Tab.Screen
+        name="Chat"
+        component={ChatNavigator}
+        options={{
+          tabBarBadge: unread > 0 ? (unread > 99 ? '99+' : unread) : undefined,
+          tabBarBadgeStyle: styles.tabBadge,
+        }}
+      />
       <Tab.Screen name="Contact" component={ContactScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
@@ -234,5 +271,12 @@ const styles = StyleSheet.create({
   },
   tabIconActive: {
     backgroundColor: colors.surfaceGold,
+  },
+  tabBadge: {
+    backgroundColor: colors.goldFill,
+    color: colors.textOnGold,
+    fontFamily: font.display,
+    fontSize: 10,
+    fontWeight: '800',
   },
 });

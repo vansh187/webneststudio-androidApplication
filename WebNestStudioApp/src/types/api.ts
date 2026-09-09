@@ -85,3 +85,108 @@ export type ProjectStatus = {
   percent_complete: number | null;
   updated_at: string;
 };
+
+/* ------------------------------------------------------------------ chat --- */
+// Wire shapes for the /api/messaging + /api/users/search endpoints. Every field
+// is treated as possibly-absent at the render layer — the app never assumes the
+// server sent a well-formed object.
+
+export type ConversationType = 'group' | 'direct';
+export type ParticipantRole = 'owner' | 'admin' | 'member';
+export type AttachmentKind = 'image' | 'pdf' | 'file';
+
+export type ChatUserSummary = {
+  id: string;
+  full_name: string | null;
+  email: string;
+};
+
+export type MessageAttachment = {
+  url_path: string;
+  url: string | null; // signed GET (~1h). Re-fetch the message if it 403s.
+  name: string;
+  mime_type: string;
+  size_bytes: number;
+  kind: AttachmentKind;
+  width: number | null;
+  height: number | null;
+};
+
+export type MessageReactionGroup = {
+  emoji: string;
+  count: number;
+  reacted_by_me: boolean;
+};
+
+export type ChatMessageReplyRef = {
+  id: string;
+  sender: ChatUserSummary;
+  body_preview: string | null;
+  is_deleted: boolean;
+};
+
+export type ChatMessage = {
+  id: string;
+  conversation_id: string;
+  sender: ChatUserSummary;
+  body: string | null;
+  attachments: MessageAttachment[];
+  reply_to: ChatMessageReplyRef | null;
+  reactions: MessageReactionGroup[];
+  is_deleted: boolean;
+  created_at: string;
+  edited_at: string | null;
+};
+
+export type ConversationParticipant = {
+  user: ChatUserSummary;
+  role: ParticipantRole;
+  joined_at: string;
+  last_read_at: string | null;
+};
+
+export type ConversationLastMessage = {
+  id: string;
+  sender_name: string;
+  preview: string;
+  created_at: string;
+  has_attachment: boolean;
+};
+
+export type Conversation = {
+  id: string;
+  type: ConversationType;
+  title: string | null; // null for DMs -> show the other participant's name
+  created_by: string;
+  participants: ConversationParticipant[];
+  last_message: ConversationLastMessage | null;
+  unread_count: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type UserSearchResult = {
+  id: string;
+  full_name: string | null;
+  email: string;
+};
+
+/** Payload the app builds for POST /conversations/{id}/messages. */
+export type OutgoingAttachment = {
+  url_path: string;
+  name: string;
+  mime_type: string;
+  size_bytes: number;
+  kind: AttachmentKind;
+  width?: number | null;
+  height?: number | null;
+};
+
+export type SignedUploadTarget = {
+  url_path: string;
+  storage_path: string;
+  upload_url: string;
+  method: string;
+  headers: Record<string, string>;
+  expires_in: number;
+};
