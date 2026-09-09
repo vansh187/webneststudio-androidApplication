@@ -19,6 +19,7 @@ import { EmptyView, LoadingView } from '../components/StateView';
 import { Text } from '../components/Text';
 import { CONTACT } from '../data/content';
 import { useAuth } from '../features/auth/AuthContext';
+import { BiometricToggle } from '../features/auth/BiometricToggle';
 import { clearAvatar, getAvatar, setAvatar } from '../features/profile/avatarStore';
 import { colors } from '../theme/colors';
 import { radii, spacing } from '../theme/spacing';
@@ -169,6 +170,10 @@ export function ProfileScreen() {
         {!status.isLoading && !status.data ? <EmptyView message="No projects found." /> : null}
       </Card>
 
+      <View style={styles.security}>
+        <BiometricToggle />
+      </View>
+
       <View style={styles.links}>
         <LinkRow icon="book-open" label="Our story & vision" onPress={() => navigation.navigate('Story')} />
         <LinkRow icon="grid" label="Services catalogue" onPress={() => navigation.navigate('Services')} />
@@ -272,6 +277,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.goldFill,
     borderRadius: radii.pill,
     height: '100%',
+  },
+  security: {
+    marginTop: spacing.lg,
   },
   links: {
     gap: spacing.sm,
