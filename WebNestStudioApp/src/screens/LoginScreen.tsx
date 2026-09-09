@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 
 import { getErrorMessage } from '../api/client';
+import { showAlert } from '../components/AppAlert';
 import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
@@ -39,7 +40,7 @@ export function LoginScreen({ navigation }: Props) {
       // On success, auth state flips and the app tree mounts automatically.
       await auth.login(values.email, values.password);
     } catch (error) {
-      Alert.alert('Login failed', getErrorMessage(error, 'Check your email and password.'));
+      showAlert('Login failed', getErrorMessage(error, 'Check your email and password.'));
     } finally {
       setLoading(false);
     }

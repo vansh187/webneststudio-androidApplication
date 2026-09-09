@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 
 import { getErrorMessage } from '../api/client';
+import { showAlert } from '../components/AppAlert';
 import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
@@ -45,7 +46,7 @@ export function SignupScreen({ navigation }: Props) {
         navigation.replace('VerifyOtp', { email: values.email });
       }
     } catch (error) {
-      Alert.alert('Could not create account', getErrorMessage(error));
+      showAlert('Could not create account', getErrorMessage(error));
     } finally {
       setLoading(false);
     }

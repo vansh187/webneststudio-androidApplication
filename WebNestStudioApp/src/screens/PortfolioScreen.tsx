@@ -1,5 +1,5 @@
 import React from 'react';
-import { Image, Linking, StyleSheet, View } from 'react-native';
+import { Image, StyleSheet, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery } from '@tanstack/react-query';
@@ -16,6 +16,7 @@ import { DELIVERED_PROJECTS, ONGOING_PROJECTS } from '../data/content';
 import { RootStackParamList } from '../navigation/types';
 import { colors } from '../theme/colors';
 import { spacing } from '../theme/spacing';
+import { openExternal } from '../utils/linking';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -96,7 +97,7 @@ function ProjectCard({
   tone: 'success' | 'neutral';
 }) {
   return (
-    <Card style={styles.projectCard} onPress={() => Linking.openURL(url)}>
+    <Card style={styles.projectCard} onPress={() => openExternal(url)}>
       <View style={styles.projectHead}>
         <Text variant="rowTitle" style={styles.flex1}>
           {name}

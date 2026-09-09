@@ -1,5 +1,5 @@
 import React from 'react';
-import { Image, Linking, StyleSheet, View } from 'react-native';
+import { Image, StyleSheet, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Feather';
 
@@ -20,6 +20,7 @@ import {
 } from '../data/content';
 import { colors } from '../theme/colors';
 import { radii, shadow, spacing } from '../theme/spacing';
+import { openExternal } from '../utils/linking';
 
 const FOUNDER_IMG = require('../assets/founder.jpg');
 
@@ -55,7 +56,7 @@ export function StoryScreen() {
           We are building the digital reputation, growth systems, and technology foundation that help
           ambitious businesses look sharper, move faster, and earn trust from the first impression.
         </Text>
-        <Button title="Build with us" icon="arrow-right" onPress={() => Linking.openURL(CONTACT.whatsappHref)} />
+        <Button title="Build with us" icon="arrow-right" onPress={() => openExternal(CONTACT.whatsappHref)} />
       </View>
 
       <Divider />
@@ -143,7 +144,7 @@ export function StoryScreen() {
           title="Start a project"
           icon="arrow-right"
           style={styles.mt}
-          onPress={() => navigation.navigate('Contact')}
+          onPress={() => navigation.navigate('ProjectInquiry')}
         />
       </Card>
     </Screen>

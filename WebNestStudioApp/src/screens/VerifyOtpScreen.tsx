@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Alert, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 
 import { getErrorMessage } from '../api/client';
+import { showAlert } from '../components/AppAlert';
 import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
@@ -37,10 +38,11 @@ export function VerifyOtpScreen({ navigation, route }: Props) {
     setLoading(true);
     try {
       await auth.verifyOtp(route.params.email, values.otpCode);
-      Alert.alert('Email verified', 'Your account is ready — sign in to continue.');
-      navigation.replace('Login');
+      showAlert('Email verified', 'Your account is ready — sign in to continue.', [
+        { text: 'Continue', onPress: () => navigation.replace('Login') },
+      ]);
     } catch (error) {
-      Alert.alert('Verification failed', getErrorMessage(error));
+      showAlert('Verification failed', getErrorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -50,9 +52,9 @@ export function VerifyOtpScreen({ navigation, route }: Props) {
     setResending(true);
     try {
       await auth.resendOtp(route.params.email);
-      Alert.alert('Code sent', `A new code is on its way to ${route.params.email}.`);
+      showAlert('Code sent', `A new code is on its way to ${route.params.email}.`);
     } catch (error) {
-      Alert.alert('Could not resend', getErrorMessage(error));
+      showAlert('Could not resend', getErrorMessage(error));
     } finally {
       setResending(false);
     }

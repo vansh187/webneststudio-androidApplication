@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Linking, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, StyleSheet, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -10,6 +10,7 @@ import {
 import Icon from 'react-native-vector-icons/Feather';
 
 import { webnestApi } from '../api/webnestApi';
+import { showAlert } from '../components/AppAlert';
 import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
@@ -21,6 +22,7 @@ import { useAuth } from '../features/auth/AuthContext';
 import { clearAvatar, getAvatar, setAvatar } from '../features/profile/avatarStore';
 import { colors } from '../theme/colors';
 import { radii, spacing } from '../theme/spacing';
+import { openExternal } from '../utils/linking';
 import { formatDate, initials } from '../utils/format';
 
 const PICKER_OPTIONS = {
@@ -55,7 +57,7 @@ export function ProfileScreen() {
       return;
     }
     if (res.errorCode) {
-      Alert.alert('Could not open', res.errorMessage || 'Please try again.');
+      showAlert('Could not open', res.errorMessage || 'Please try again.');
       return;
     }
     const asset = res.assets?.[0];
@@ -77,7 +79,7 @@ export function ProfileScreen() {
             : await launchImageLibrary({ ...PICKER_OPTIONS, selectionLimit: 1 });
         handlePicked(res);
       } catch {
-        Alert.alert('Could not open', 'Please try again.');
+        showAlert('Could not open', 'Please try again.');
       } finally {
         setAvatarBusy(false);
       }
@@ -86,9 +88,8 @@ export function ProfileScreen() {
   );
 
   const changePhoto = useCallback(() => {
-    // Android's Alert shows at most three buttons — keep it to pick actions and
-    // surface "Remove" as its own inline control below.
-    Alert.alert('Profile photo', 'Update the photo shown on your client profile.', [
+    // "Remove" is surfaced as its own inline control below the avatar.
+    showAlert('Profile photo', 'Update the photo shown on your client profile.', [
       { text: 'Take photo', onPress: () => runPicker('camera') },
       { text: 'Choose from library', onPress: () => runPicker('library') },
       { text: 'Cancel', style: 'cancel' },
@@ -171,8 +172,8 @@ export function ProfileScreen() {
       <View style={styles.links}>
         <LinkRow icon="book-open" label="Our story & vision" onPress={() => navigation.navigate('Story')} />
         <LinkRow icon="grid" label="Services catalogue" onPress={() => navigation.navigate('Services')} />
-        <LinkRow icon="message-circle" label="Chat on WhatsApp" onPress={() => Linking.openURL(CONTACT.whatsappHref)} />
-        <LinkRow icon="phone" label={CONTACT.phone} onPress={() => Linking.openURL(CONTACT.phoneHref)} />
+        <LinkRow icon="message-circle" label="Chat on WhatsApp" onPress={() => openExternal(CONTACT.whatsappHref)} />
+        <LinkRow icon="phone" label={CONTACT.phone} onPress={() => openExternal(CONTACT.phoneHref)} />
         <LinkRow
           icon="credit-card"
           label="Visiting card"
@@ -184,7 +185,7 @@ export function ProfileScreen() {
         title="Log out"
         variant="outline"
         icon="log-out"
-        onPress={() => auth.logout().catch(() => Alert.alert('Could not log out'))}
+        onPress={() => auth.logout().catch(() => showAlert('Could not log out'))}
       />
     </Screen>
   );

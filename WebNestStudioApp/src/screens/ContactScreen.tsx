@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Alert, Linking, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -7,6 +7,7 @@ import Icon from 'react-native-vector-icons/Feather';
 
 import { getErrorMessage } from '../api/client';
 import { webnestApi } from '../api/webnestApi';
+import { showAlert } from '../components/AppAlert';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { Chip } from '../components/Chip';
@@ -17,6 +18,7 @@ import { Text } from '../components/Text';
 import { CONTACT } from '../data/content';
 import { colors } from '../theme/colors';
 import { spacing } from '../theme/spacing';
+import { openExternal } from '../utils/linking';
 
 const schema = z.object({
   full_name: z.string().min(2, 'Enter your name'),
@@ -48,9 +50,9 @@ export function ContactScreen() {
     try {
       await webnestApi.submitLead({ ...values, source: 'contact_form', consent_given: true });
       reset();
-      Alert.alert('Request received', 'WebNest Studio will reply within one business day.');
+      showAlert('Request received', 'WebNest Studio will reply within one business day.');
     } catch (error) {
-      Alert.alert('Could not submit', getErrorMessage(error));
+      showAlert('Could not submit', getErrorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -65,19 +67,19 @@ export function ContactScreen() {
       />
 
       <View style={styles.quickRow}>
-        <Card onPress={() => Linking.openURL(CONTACT.whatsappHref)} style={styles.quick}>
+        <Card onPress={() => openExternal(CONTACT.whatsappHref)} style={styles.quick}>
           <Icon name="message-circle" size={18} color={colors.goldPrimary} />
           <Text variant="caption" tone="secondary">
             WhatsApp
           </Text>
         </Card>
-        <Card onPress={() => Linking.openURL(CONTACT.phoneHref)} style={styles.quick}>
+        <Card onPress={() => openExternal(CONTACT.phoneHref)} style={styles.quick}>
           <Icon name="phone" size={18} color={colors.goldPrimary} />
           <Text variant="caption" tone="secondary">
             Call
           </Text>
         </Card>
-        <Card onPress={() => Linking.openURL(CONTACT.emailHref)} style={styles.quick}>
+        <Card onPress={() => openExternal(CONTACT.emailHref)} style={styles.quick}>
           <Icon name="mail" size={18} color={colors.goldPrimary} />
           <Text variant="caption" tone="secondary">
             Email

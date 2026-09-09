@@ -1,8 +1,9 @@
 import React, { useCallback, useRef, useState } from 'react';
-import { Alert, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { captureRef } from 'react-native-view-shot';
 import Share from 'react-native-share';
 
+import { showAlert } from '../components/AppAlert';
 import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
@@ -51,7 +52,7 @@ export function VisitingCardScreen() {
       try {
         await Share.open({ title: 'WebNest Studio', message: GREETING, failOnCancel: false });
       } catch {
-        Alert.alert('Could not share', 'Please try again.');
+        showAlert('Could not share', 'Please try again.');
       }
     } finally {
       setSharing(false);

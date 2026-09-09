@@ -54,8 +54,9 @@ export const type: Record<Variant, TextStyle> = {
   sectionTitle: {
     fontFamily: font.serif,
     fontSize: 23,
-    lineHeight: 30,
-    fontWeight: '500',
+    lineHeight: 31,
+    fontWeight: '600',
+    letterSpacing: -0.2,
   },
   rowTitle: {
     fontFamily: font.display,
@@ -84,7 +85,7 @@ export const type: Record<Variant, TextStyle> = {
     fontFamily: font.display,
     fontSize: 11,
     fontWeight: '700',
-    letterSpacing: 2.4,
+    letterSpacing: 2.8,
     textTransform: 'uppercase',
   },
   muted: {

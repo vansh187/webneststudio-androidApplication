@@ -50,6 +50,9 @@ export const colors = {
   goldDeep: gold[600],
   goldFill: gold[400],
   goldFillText: ink[950],
+  goldEdge: gold[700], // crisp 1px rim on a filled-gold surface
+  goldOutline: 'rgba(237, 195, 99, 0.85)', // bright, legible outline-button border
+  surfaceGoldStrong: 'rgba(230, 172, 62, 0.12)',
 
   // Text
   textPrimary: '#F6F7F9',
@@ -71,7 +74,11 @@ export const colors = {
 /** Linear-gradient stop lists (consumed by BrandGradient / gradient text). */
 export const gradients = {
   gold: [gold[200], gold[500], gold[700]] as const,
+  // Polished-metal sweep for filled buttons: bright crown, warm belly, deep base.
+  goldMetal: [gold[100], gold[300], gold[500], gold[700]] as const,
   goldSoft: [gold[300], gold[500]] as const,
-   inkPanel: ['#12151E', ink[950]] as const,
+  // Top-edge highlight laid over a surface to fake a bevelled, catch-the-light edge.
+  sheen: ['rgba(255,255,255,0.32)', 'rgba(255,255,255,0.04)', 'rgba(255,255,255,0)'] as const,
+  inkPanel: ['#12151E', ink[950]] as const,
   heroGlow: ['rgba(230,172,62,0.18)', 'rgba(230,172,62,0)'] as const,
 };

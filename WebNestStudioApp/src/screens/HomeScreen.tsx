@@ -1,5 +1,5 @@
 import React from 'react';
-import { Image, Linking, StyleSheet, View } from 'react-native';
+import { Image, StyleSheet, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
 import Icon from 'react-native-vector-icons/Feather';
@@ -25,6 +25,7 @@ import {
 } from '../data/content';
 import { colors } from '../theme/colors';
 import { radii, spacing } from '../theme/spacing';
+import { openExternal } from '../utils/linking';
 
 const HERO_POINTS = ['Any language, any stack', 'AI-first engineering', 'Design that converts'];
 
@@ -107,7 +108,7 @@ export function HomeScreen() {
           key={project.name}
           variant="gold"
           style={styles.milestone}
-          onPress={() => Linking.openURL(project.url)}>
+          onPress={() => openExternal(project.url)}>
           <Badge label="First project delivered" tone="success" />
           <Text variant="rowTitle">{project.name} is live in production</Text>
           <Text variant="body">{project.description}</Text>
@@ -172,7 +173,7 @@ export function HomeScreen() {
       ))}
       {!work.isLoading && !work.data?.length
         ? ONGOING_PROJECTS.map(project => (
-            <Card key={project.name} style={styles.serviceCard} onPress={() => Linking.openURL(project.url)}>
+            <Card key={project.name} style={styles.serviceCard} onPress={() => openExternal(project.url)}>
               <View style={styles.flex1}>
                 <View style={styles.inlineRow}>
                   <Text variant="rowTitle">{project.name}</Text>
@@ -214,10 +215,21 @@ export function HomeScreen() {
         <Button
           title="Get a free consultation"
           icon="arrow-right"
-          onPress={() => Linking.openURL(CONTACT.whatsappHref)}
+          onPress={() => openExternal(CONTACT.whatsappHref)}
         />
         <Button title="Read our story" variant="ghost" onPress={() => navigation.navigate('Story')} />
       </Card>
+
+      {/* QUICK LINKS */}
+      <View style={styles.quickLinks}>
+        <Card onPress={() => navigation.navigate('Story')} style={styles.storyLinkRow}>
+          <Icon name="book-open" size={17} color={colors.goldPrimary} />
+          <Text variant="body" tone="primary" style={styles.linkLabel}>
+            Our story &amp; vision
+          </Text>
+          <Icon name="chevron-right" size={18} color={colors.textTertiary} />
+        </Card>
+      </View>
     </Screen>
   );
 }
@@ -312,5 +324,17 @@ const styles = StyleSheet.create({
     alignItems: 'stretch',
     gap: spacing.md,
     marginTop: spacing.xxl,
+  },
+  quickLinks: {
+    gap: spacing.sm,
+    marginTop: spacing.lg,
+  },
+  storyLinkRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  linkLabel: {
+    flex: 1,
   },
 });

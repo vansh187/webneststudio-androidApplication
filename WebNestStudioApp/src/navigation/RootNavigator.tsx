@@ -20,6 +20,7 @@ import { HomeScreen } from '../screens/HomeScreen';
 import { PortfolioDetailScreen } from '../screens/PortfolioDetailScreen';
 import { PortfolioScreen } from '../screens/PortfolioScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
+import { ProjectInquiryScreen } from '../screens/ProjectInquiryScreen';
 import { ServicesScreen } from '../screens/ServicesScreen';
 import { SplashScreen } from '../screens/SplashScreen';
 import { StoryScreen } from '../screens/StoryScreen';
@@ -158,6 +159,11 @@ function AppStack() {
       <Stack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
       <Stack.Screen name="Services" component={ServicesScreen} options={{ title: 'Services' }} />
       <Stack.Screen name="Story" component={StoryScreen} options={{ title: 'Our Story' }} />
+      <Stack.Screen
+        name="ProjectInquiry"
+        component={ProjectInquiryScreen}
+        options={{ title: 'Start a Project' }}
+      />
       <Stack.Screen
         name="VisitingCard"
         component={VisitingCardScreen}

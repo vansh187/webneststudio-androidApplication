@@ -8,6 +8,7 @@ export type RootStackParamList = {
   MainTabs: undefined;
   Services: undefined;
   Story: undefined;
+  ProjectInquiry: undefined;
   VisitingCard: undefined;
   PortfolioDetail: { slug: string; title?: string | null };
   BlogDetail: { slug: string; title?: string | null };

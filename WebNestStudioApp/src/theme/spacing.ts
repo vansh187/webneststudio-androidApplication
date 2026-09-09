@@ -33,4 +33,11 @@ export const shadow = {
     shadowRadius: 20,
     elevation: 10,
   },
+  goldStrong: {
+    shadowColor: '#E6AC3E',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.5,
+    shadowRadius: 30,
+    elevation: 16,
+  },
 };

@@ -67,11 +67,12 @@ export type Faq = {
 };
 
 export type LeadPayload = {
-  source: 'contact_form';
+  source: 'contact_form' | 'start_project';
   full_name: string;
   email: string;
   phone_number: string;
   project_type?: string;
+  budget_range?: string;
   message: string;
   consent_given: true;
 };
