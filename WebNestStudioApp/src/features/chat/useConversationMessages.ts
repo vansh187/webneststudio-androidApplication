@@ -183,7 +183,10 @@ export function useConversationMessages(
       setMessages(prev => {
         try {
           const next = updater(prev);
-          return Array.isArray(next) ? next.filter(isMessage) : prev;
+          // Always de-dupe + re-sort: an optimistic replace can collide with a
+          // message the 3s poll already pulled in (same id twice -> React key
+          // warning + dropped rows).
+          return Array.isArray(next) ? mergeAscending([], next) : prev;
         } catch {
           return prev;
         }

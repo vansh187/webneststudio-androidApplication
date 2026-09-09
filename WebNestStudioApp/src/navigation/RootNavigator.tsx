@@ -10,6 +10,7 @@ import {
   createNativeStackNavigator,
   NativeStackNavigationOptions,
 } from '@react-navigation/native-stack';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 
 import { Gradient } from '../components/Gradient';
@@ -82,7 +83,11 @@ function TabBarBackground() {
   );
 }
 
-function tabScreenOptions({ route }: { route: { name: keyof MainTabParamList } }) {
+function tabScreenOptions(
+  { route }: { route: { name: keyof MainTabParamList } },
+  bottomInset: number,
+) {
+  const bottomPad = Math.max(bottomInset, 12);
   return {
     headerShown: false,
     tabBarHideOnKeyboard: true,
@@ -91,9 +96,9 @@ function tabScreenOptions({ route }: { route: { name: keyof MainTabParamList } }
       backgroundColor: 'transparent',
       borderTopWidth: 0,
       elevation: 0,
-      height: 74,
-      paddingBottom: 14,
-      paddingTop: 12,
+      height: 58 + bottomPad,
+      paddingBottom: bottomPad,
+      paddingTop: 10,
     },
     tabBarActiveTintColor: colors.goldPrimary,
     tabBarInactiveTintColor: colors.textTertiary,
@@ -133,8 +138,9 @@ function ChatNavigator() {
 
 function MainTabs() {
   const unread = useUnreadCount();
+  const insets = useSafeAreaInsets();
   return (
-    <Tab.Navigator screenOptions={tabScreenOptions}>
+    <Tab.Navigator screenOptions={opts => tabScreenOptions(opts, insets.bottom)}>
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Work" component={PortfolioScreen} />
       <Tab.Screen name="Blog" component={BlogScreen} />

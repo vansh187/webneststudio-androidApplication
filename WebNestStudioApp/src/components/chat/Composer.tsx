@@ -26,6 +26,8 @@ type Props = {
   sending: boolean;
   statusHint?: string | null;
   disabled?: boolean;
+  /** Safe-area bottom inset so the send button clears the nav bar. */
+  bottomInset?: number;
 };
 
 const MAX_LEN = 4000;
@@ -38,6 +40,7 @@ export function Composer({
   sending,
   statusHint,
   disabled = false,
+  bottomInset = 0,
 }: Props) {
   const [text, setText] = useState('');
   const [emojiOpen, setEmojiOpen] = useState(false);
@@ -69,7 +72,7 @@ export function Composer({
   };
 
   return (
-    <View style={styles.wrap}>
+    <View style={[styles.wrap, { paddingBottom: spacing.sm + bottomInset }]}>
       {replyingTo ? (
         <View style={styles.replyStrip}>
           <View style={styles.replyBar} />

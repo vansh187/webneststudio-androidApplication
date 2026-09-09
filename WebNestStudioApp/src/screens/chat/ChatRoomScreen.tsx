@@ -13,6 +13,8 @@ import {
   useRoute,
   type RouteProp,
 } from '@react-navigation/native';
+import { useHeaderHeight } from '@react-navigation/elements';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useQueryClient } from '@tanstack/react-query';
 
 import { getErrorMessage } from '../../api/client';
@@ -63,6 +65,8 @@ export function ChatRoomScreen() {
   const focused = useIsFocused();
   const auth = useAuth();
   const queryClient = useQueryClient();
+  const headerHeight = useHeaderHeight();
+  const insets = useSafeAreaInsets();
 
   const conversationId = route.params?.conversationId;
   const headerTitle = route.params?.title;
@@ -367,7 +371,8 @@ export function ChatRoomScreen() {
       <BrandBackground>
         <KeyboardAvoidingView
           style={styles.flex}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={headerHeight}>
           {status === 'loading' && messages.length === 0 ? (
             <View style={styles.center}>
               <ActivityIndicator color={colors.goldPrimary} />
@@ -429,6 +434,7 @@ export function ChatRoomScreen() {
             sending={sending}
             statusHint={uploadHint}
             disabled={!conversationId}
+            bottomInset={insets.bottom}
           />
         </KeyboardAvoidingView>
       </BrandBackground>
