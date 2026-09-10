@@ -77,6 +77,12 @@ export type LeadPayload = {
   consent_given: true;
 };
 
+/**
+ * @deprecated Legacy flat project status. Superseded by `ProjectSummary` /
+ * `ProjectDetail` below and the `/api/me/projects` endpoints. The backend keeps
+ * `/api/me/project-status` alive only for older app builds; nothing in the app
+ * reads this type any more.
+ */
 export type ProjectStatus = {
   id: string;
   client_user_id: string;
@@ -84,6 +90,51 @@ export type ProjectStatus = {
   phase: string | null;
   percent_complete: number | null;
   updated_at: string;
+};
+
+/* -------------------------------------------------------------- projects --- */
+// Wire shapes for /api/me/projects + /api/me/projects/{id}. As with chat, the
+// render layer treats every field as possibly-absent — see
+// `src/features/projects/normalize.ts`, which every screen goes through.
+
+export type SdlcStageKey =
+  | 'requirements'
+  | 'design'
+  | 'development'
+  | 'testing'
+  | 'deployment'
+  | 'maintenance';
+
+export type ProjectStageState = 'pending' | 'in_progress' | 'done';
+
+export type ProjectLifecycleStatus = 'active' | 'on_hold' | 'completed' | 'archived';
+
+export type ProjectStage = {
+  key: SdlcStageKey;
+  label: string;
+  order_index: number;
+  state: ProjectStageState;
+  note: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+  updated_at: string;
+};
+
+export type ProjectSummary = {
+  id: string;
+  name: string;
+  status: ProjectLifecycleStatus;
+  current_stage: SdlcStageKey;
+  current_stage_label: string;
+  progress_percent: number; // already resolved 0-100 by the backend
+  conversation_id: string | null; // linked team group chat, if any
+  updated_at: string;
+};
+
+export type ProjectDetail = ProjectSummary & {
+  summary: string | null;
+  created_at: string;
+  stages: ProjectStage[]; // always the full 6, order_index 0->5
 };
 
 /* ------------------------------------------------------------------ chat --- */
@@ -157,6 +208,7 @@ export type Conversation = {
   id: string;
   type: ConversationType;
   title: string | null; // null for DMs -> show the other participant's name
+  project_id?: string | null; // non-null => this group is a project team room
   created_by: string;
   participants: ConversationParticipant[];
   last_message: ConversationLastMessage | null;

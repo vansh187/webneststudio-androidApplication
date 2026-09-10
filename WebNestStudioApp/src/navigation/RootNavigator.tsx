@@ -26,6 +26,7 @@ import { HomeScreen } from '../screens/HomeScreen';
 import { PortfolioDetailScreen } from '../screens/PortfolioDetailScreen';
 import { PortfolioScreen } from '../screens/PortfolioScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
+import { ProjectDetailScreen } from '../screens/ProjectDetailScreen';
 import { ProjectInquiryScreen } from '../screens/ProjectInquiryScreen';
 import { ServicesScreen } from '../screens/ServicesScreen';
 import { SplashScreen } from '../screens/SplashScreen';
@@ -211,6 +212,11 @@ function AppStack() {
         name="VisitingCard"
         component={VisitingCardScreen}
         options={{ title: 'Visiting Card' }}
+      />
+      <Stack.Screen
+        name="ProjectDetail"
+        component={ProjectDetailScreen}
+        options={{ title: 'Project' }}
       />
       <Stack.Screen
         name="PortfolioDetail"
