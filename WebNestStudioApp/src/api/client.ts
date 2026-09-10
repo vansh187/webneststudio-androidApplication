@@ -100,6 +100,11 @@ api.interceptors.response.use(
   },
 );
 
+/** HTTP status of a failed request, or `undefined` for network/timeout errors. */
+export function getHttpStatus(error: unknown): number | undefined {
+  return axios.isAxiosError(error) ? error.response?.status : undefined;
+}
+
 export function getErrorMessage(
   error: unknown,
   fallback = 'Something went wrong. Please try again.',

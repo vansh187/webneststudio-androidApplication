@@ -1,7 +1,6 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, StyleSheet, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { useQuery } from '@tanstack/react-query';
 import {
   launchCamera,
   launchImageLibrary,
@@ -9,17 +8,26 @@ import {
 } from 'react-native-image-picker';
 import Icon from 'react-native-vector-icons/Feather';
 
-import { webnestApi } from '../api/webnestApi';
 import { showAlert } from '../components/AppAlert';
 import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
+import { ProjectErrorBoundary } from '../components/ProjectErrorBoundary';
+import { ProjectPipeline } from '../components/ProjectPipeline';
 import { Screen } from '../components/Screen';
-import { EmptyView, LoadingView } from '../components/StateView';
+import { Select } from '../components/Select';
+import { EmptyView, ErrorView, LoadingView } from '../components/StateView';
 import { Text } from '../components/Text';
 import { CONTACT } from '../data/content';
 import { useAuth } from '../features/auth/AuthContext';
+import { BiometricToggle } from '../features/auth/BiometricToggle';
 import { clearAvatar, getAvatar, setAvatar } from '../features/profile/avatarStore';
+import { deriveStages } from '../features/projects/normalize';
+import { useMyProjects } from '../features/projects/projectQueries';
+import {
+  getSelectedProjectId,
+  setSelectedProjectId,
+} from '../features/projects/selectedProject';
 import { colors } from '../theme/colors';
 import { radii, spacing } from '../theme/spacing';
 import { openExternal } from '../utils/linking';
@@ -36,14 +44,55 @@ const PICKER_OPTIONS = {
 export function ProfileScreen() {
   const navigation = useNavigation<any>();
   const auth = useAuth();
-  const status = useQuery({
-    queryKey: ['me', 'project-status'],
-    queryFn: webnestApi.projectStatus,
-    enabled: auth.isAuthenticated,
-    // A missing project 404s — that's an expected "no project" state, so don't
-    // burn retries on it and don't surface it as a failure.
-    retry: false,
-  });
+
+  const projectsQuery = useMyProjects();
+  const projects = useMemo(() => projectsQuery.data ?? [], [projectsQuery.data]);
+  const projectIdsKey = projects.map(p => p.id).join('|');
+
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  // Hydrate the persisted project choice once the list is known; fall back to
+  // the most recently updated project if the stored id is gone.
+  useEffect(() => {
+    if (projects.length === 0) {
+      setSelectedId(null);
+      return;
+    }
+    let cancelled = false;
+    getSelectedProjectId().then(stored => {
+      if (cancelled) {
+        return;
+      }
+      const valid = stored && projects.some(p => p.id === stored) ? stored : projects[0].id;
+      setSelectedId(valid);
+    });
+    return () => {
+      cancelled = true;
+    };
+    // projectIdsKey captures list identity without re-running on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectIdsKey]);
+
+  const selectedProject =
+    projects.find(p => p.id === selectedId) ?? projects[0] ?? null;
+
+  const onPickProject = useCallback(
+    (name: string) => {
+      const match = projects.find(p => p.name === name);
+      if (!match) {
+        return;
+      }
+      setSelectedId(match.id);
+      setSelectedProjectId(match.id);
+    },
+    [projects],
+  );
+
+  const openSelectedProject = useCallback(() => {
+    if (selectedProject) {
+      navigation.navigate('ProjectDetail', { projectId: selectedProject.id });
+    }
+  }, [navigation, selectedProject]);
 
   const [avatar, setAvatarState] = useState<string | null>(null);
   const [avatarBusy, setAvatarBusy] = useState(false);
@@ -101,12 +150,16 @@ export function ProfileScreen() {
     clearAvatar();
   }, []);
 
-  const percent = Math.max(0, Math.min(100, status.data?.percent_complete ?? 0));
-
   return (
-    <Screen refreshing={status.isFetching} onRefresh={() => status.refetch()}>
+    <Screen
+      refreshing={projectsQuery.isFetching}
+      onRefresh={() => projectsQuery.refetch()}>
       <View style={styles.identity}>
-        <Pressable onPress={changePhoto} style={styles.avatar} accessibilityRole="button" accessibilityLabel="Change profile photo">
+        <Pressable
+          onPress={changePhoto}
+          style={styles.avatar}
+          accessibilityRole="button"
+          accessibilityLabel="Change profile photo">
           {avatar ? (
             <Image source={{ uri: avatar }} style={styles.avatarImage} />
           ) : (
@@ -151,23 +204,69 @@ export function ProfileScreen() {
           </Text>
           <Icon name="activity" size={16} color={colors.goldPrimary} />
         </View>
-        {status.isLoading ? <LoadingView label="Fetching status" /> : null}
-        {!status.isLoading && status.data ? (
-          <>
-            <Text variant="rowTitle">{status.data.project_name || 'WebNest project'}</Text>
-            <Text variant="body">{status.data.phase || 'Phase will appear here once updated.'}</Text>
-            <View style={styles.track}>
-              <View style={[styles.fill, { width: `${percent}%` }]} />
+
+        <ProjectErrorBoundary
+          variant="inline"
+          label="Project progress"
+          onRetry={() => projectsQuery.refetch()}>
+          {projectsQuery.isLoading ? (
+            <LoadingView label="Fetching projects" />
+          ) : projectsQuery.isError ? (
+            <ErrorView
+              error={projectsQuery.error}
+              onRetry={() => projectsQuery.refetch()}
+            />
+          ) : !selectedProject ? (
+            /* A client with no project is a normal state, never a red error. */
+            <EmptyView message="No projects found." />
+          ) : (
+            <View style={styles.projectBlock}>
+              {projects.length > 1 ? (
+                <Select
+                  label="Project"
+                  options={projects.map(p => p.name)}
+                  value={selectedProject.name}
+                  onChange={onPickProject}
+                />
+              ) : null}
+
+              <Pressable
+                onPress={openSelectedProject}
+                accessibilityRole="button"
+                accessibilityLabel={`Open ${selectedProject.name}`}
+                style={({ pressed }) => [
+                  styles.projectTap,
+                  pressed && styles.projectTapPressed,
+                ]}>
+                <View style={styles.projectHeadRow}>
+                  <Text variant="rowTitle" style={styles.flex1}>
+                    {selectedProject.name}
+                  </Text>
+                  <Icon name="chevron-right" size={18} color={colors.textTertiary} />
+                </View>
+                <Text variant="body">{selectedProject.current_stage_label}</Text>
+                <View style={styles.track}>
+                  <View
+                    style={[styles.fill, { width: `${selectedProject.progress_percent}%` }]}
+                  />
+                </View>
+                <Text variant="caption" tone="tertiary">
+                  {selectedProject.progress_percent}% complete · updated{' '}
+                  {formatDate(selectedProject.updated_at)}
+                </Text>
+                <ProjectPipeline
+                  stages={deriveStages(selectedProject.current_stage)}
+                  variant="compact"
+                />
+              </Pressable>
             </View>
-            <Text variant="caption" tone="tertiary">
-              {percent}% complete · updated {formatDate(status.data.updated_at)}
-            </Text>
-          </>
-        ) : null}
-        {/* No project (or the endpoint 404s for this client) is a normal state,
-            not an error — show a calm message, never a red "request failed". */}
-        {!status.isLoading && !status.data ? <EmptyView message="No projects found." /> : null}
+          )}
+        </ProjectErrorBoundary>
       </Card>
+
+      <View style={styles.security}>
+        <BiometricToggle />
+      </View>
 
       <View style={styles.links}>
         <LinkRow icon="book-open" label="Our story & vision" onPress={() => navigation.navigate('Story')} />
@@ -260,6 +359,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
+  projectBlock: {
+    gap: spacing.sm,
+  },
+  projectTap: {
+    gap: spacing.xs,
+  },
+  projectTapPressed: {
+    opacity: 0.85,
+  },
+  projectHeadRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
   track: {
     backgroundColor: colors.border,
     borderRadius: radii.pill,
@@ -272,6 +385,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.goldFill,
     borderRadius: radii.pill,
     height: '100%',
+  },
+  security: {
+    marginTop: spacing.lg,
   },
   links: {
     gap: spacing.sm,

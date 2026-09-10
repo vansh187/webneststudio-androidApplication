@@ -524,3 +524,92 @@ uvicorn app:app --reload          # the 4 tables auto-create on startup
 
 Push notifications (FCM + device-token storage + send pipeline), typing indicators,
 read-receipt avatars, message editing, message search, WebSocket transport.
+
+---
+
+## 11. Project-linked conversations  *(added 2026-09-10 — see `project-progress-backend-spec.md`)*
+
+The Client Project Progress feature gives every `Project` its own **team group chat**.
+It reuses this `/api/messaging` feature end to end — the only additions are one nullable
+column, one internal service method, and one extra field on the `Conversation` response.
+**No new endpoint.** The client is stored as `owner`, so they rename the group and
+add/remove teammates through §6.5–§6.7 with no further work.
+
+### 11.1 `conversations.project_id` — one additive column
+
+`ALTER`, additive, nullable — runs fine on the existing table (`Base.metadata.create_all`
+does **not** add columns to an existing table, so apply this one explicitly).
+
+```sql
+alter table conversations add column if not exists project_id uuid
+  references projects(id) on delete set null;
+create unique index if not exists uq_conversations_project on conversations (project_id)
+  where project_id is not null;
+```
+
+SQLAlchemy — add to the `Conversation` model (§3a):
+```python
+project_id = mapped_column(ForeignKey("projects.id", ondelete="SET NULL"), nullable=True, unique=True)
+```
+
+`ON DELETE SET NULL` — a hard-deleted project leaves its chat and history intact, just
+unlinked. `projects` is created by `project-progress-backend-spec.md` §2; if that patch
+is applied first the FK resolves cleanly, otherwise apply this ALTER after it.
+
+### 11.2 `MessagingService.create_project_conversation(...)`
+
+```python
+async def create_project_conversation(
+    self, *, owner_user_id: uuid.UUID, title: str, project_id: uuid.UUID
+) -> Conversation:
+    """Idempotent per project. Called by ProjectService inside its own transaction."""
+    existing = await self._persistence.get_conversation_by_project(project_id)
+    if existing:
+        return existing
+    return await self._persistence.create_conversation(
+        type="group",
+        title=title[:120],
+        created_by=owner_user_id,
+        project_id=project_id,
+        participants=[(owner_user_id, "owner")],
+    )
+```
+
+- Add `get_conversation_by_project(project_id)` to `MessagingPersistence`
+  (`select … where project_id = :pid`).
+- `create_conversation` in `MessagingPersistence` gains an optional `project_id` kwarg
+  (default `None`) — existing group/DM creation is unaffected.
+- Same `AsyncSession` as the caller: `get_project_service` builds `MessagingService` with
+  the request session so the project row and its conversation commit together.
+- Idempotent: a re-run of `POST /api/admin/projects` or `PATCH …/projects/{id}` with
+  `create_conversation: true` returns the existing conversation, never a duplicate (the
+  partial unique index is the backstop).
+
+### 11.3 `Conversation` response gains `project_id`
+
+Add to the **Conversation** shape (§5) and every serialiser that emits it (§6.1–§6.7):
+
+```json
+{ "id": "51de…", "type": "group", "title": "V Stitch — Website Revamp",
+  "project_id": "9b1e…", "created_by": "b3f1…", "participants": [ … ], "…": "…" }
+```
+
+`project_id` is `null` for every ordinary group and DM. The app uses it only to badge a
+conversation as a project room (`chat-frontend-integration.md` addendum).
+
+### 11.4 Authorisation — unchanged
+
+The §7 matrix applies as-is. The project's client is `owner` (rename + add/remove
+members + can't be removed by anyone else). WebNest staff are added as normal `member`s
+(or `admin` promoted server-side) via §6.6. Only registered active users are addable —
+the §6.15 constraint is unchanged; invite-by-email stays out of scope.
+
+### 11.5 Files touched (delta on §8)
+
+| File | Change |
+|---|---|
+| `database/models.py` | `Conversation.project_id` column (§11.1) |
+| `database/messaging_persistence.py` | `get_conversation_by_project(project_id)`; `create_conversation(..., project_id=None)` |
+| `services/messaging_service.py` | `create_project_conversation(...)` (§11.2) |
+| `schemas/messaging_schemas.py` | `project_id: UUID | None` on the conversation response model |
+| `api/messaging_router.py` | no change (serialiser picks up the new field) |

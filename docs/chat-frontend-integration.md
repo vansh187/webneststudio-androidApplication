@@ -262,3 +262,58 @@ npx react-native start          # Metro
 
 Push notifications (FCM + Notifee + device-token registration), typing indicators,
 read-receipt avatars, message editing, in-app PDF rendering, message search.
+
+---
+
+## 11. Project-linked conversations  *(added 2026-09-10 — see `project-progress-frontend-integration.md`)*
+
+The Client Project Progress feature deep-links from a project into its **team group
+chat**. That chat is an ordinary `/api/messaging` group conversation — the client is
+`owner`, so `GroupInfoScreen` already lets them rename it and add/remove teammates.
+**No new chat screen, no new chat endpoint.** Frontend delta:
+
+### 11.1 `Conversation.project_id` on the type
+
+Backend adds `project_id` to the Conversation shape (`chat-backend-spec.md` §11.3). Add
+it to `src/types/api.ts`:
+
+```ts
+export type Conversation = {
+  id: string;
+  type: ConversationType;
+  title: string | null;
+  project_id: string | null;     // NEW — non-null => this is a project team room
+  created_by: string;
+  // …unchanged…
+};
+```
+
+### 11.2 Deep link in (from the project screen)
+
+`ProjectDetailScreen` navigates into this stack with the project's `conversation_id`:
+
+```ts
+navigation.navigate('Chat', {
+  screen: 'ChatRoom',
+  params: { conversationId, title: projectName },
+});
+```
+
+Works with the existing `MainTabParamList.Chat: NavigatorScreenParams<ChatStackParamList>`
+— no navigation change on the chat side. `ChatRoomScreen` already reads
+`route.params.conversationId` / `title`.
+
+### 11.3 Optional — badge a project room
+
+Cosmetic, not required for v1. Where a conversation is rendered with `project_id != null`:
+- `ChatListScreen` row — a small gold "Project" `Badge` next to the title.
+- `ChatRoomScreen` header — same badge under the title.
+No data wiring beyond reading the field that now comes back on every
+`listConversations()` / `getConversation()` response.
+
+### 11.4 No new work on add-member
+
+The customer adds teammates through the **existing** `GroupInfoScreen` path
+(`searchUsers` → `addParticipants`, §1 / §5). Only registered users are searchable —
+unchanged. Nothing to build here; just point users at "Details" from the project screen's
+hint text.

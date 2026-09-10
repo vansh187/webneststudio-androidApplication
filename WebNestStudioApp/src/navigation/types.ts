@@ -14,6 +14,7 @@ export type RootStackParamList = {
   VisitingCard: undefined;
   PortfolioDetail: { slug: string; title?: string | null };
   BlogDetail: { slug: string; title?: string | null };
+  ProjectDetail: { projectId: string };
 };
 
 export type ChatStackParamList = {

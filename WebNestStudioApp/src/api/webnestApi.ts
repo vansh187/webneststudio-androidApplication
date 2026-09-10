@@ -8,7 +8,8 @@ import {
   MessageReactionGroup,
   OutgoingAttachment,
   PortfolioItem,
-  ProjectStatus,
+  ProjectDetail,
+  ProjectSummary,
   Service,
   SignedUploadTarget,
   TokenResponse,
@@ -71,9 +72,17 @@ export const webnestApi = {
   faqs: () => api.get<Faq[]>('/api/faqs').then(response => response.data),
   submitLead: (payload: LeadPayload) =>
     api.post('/api/leads', payload).then(response => response.data),
-  projectStatus: () =>
-    api.get<ProjectStatus>('/api/me/project-status').then(response => response.data),
   files: () => api.get<unknown[]>('/api/me/files').then(response => response.data),
+
+  /* ----------------------------------------------------------- projects --- */
+
+  listMyProjects: () =>
+    api
+      .get<{ projects: ProjectSummary[] }>('/api/me/projects')
+      .then(response => response.data?.projects ?? []),
+
+  getMyProject: (id: string) =>
+    api.get<ProjectDetail>(`/api/me/projects/${id}`).then(response => response.data),
 
   /* --------------------------------------------------------------- chat --- */
 
