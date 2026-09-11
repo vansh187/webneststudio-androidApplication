@@ -121,6 +121,23 @@ export function useConversationMessages(
         }
       }
       if (!cursor) {
+        // No confirmed message yet to poll "after" — most often a room that
+        // was empty when it first loaded (e.g. a just-created team chat).
+        // Without this, a cursor-based poll has nothing to anchor to and
+        // silently never checks again, even once someone else sends the
+        // first message. Fall back to a plain latest-page fetch instead.
+        try {
+          const page = await webnestApi.listMessages(conversationId, { limit: PAGE_SIZE });
+          if (cancelled || !mountedRef.current) return;
+          const fresh = (page.messages || []).filter(isMessage);
+          if (fresh.length) {
+            setMessages(prev => mergeAscending(prev, fresh));
+          }
+          setHasMoreOlder(Boolean(page.has_more));
+          setError(null);
+        } catch {
+          // Silent — same as the cursor path below.
+        }
         return;
       }
       try {

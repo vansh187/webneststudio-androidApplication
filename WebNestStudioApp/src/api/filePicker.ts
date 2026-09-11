@@ -1,3 +1,4 @@
+import { PermissionsAndroid, Platform } from 'react-native';
 import {
   launchCamera,
   launchImageLibrary,
@@ -5,6 +6,31 @@ import {
 } from 'react-native-image-picker';
 
 import type { AttachmentKind } from '../types/api';
+
+/**
+ * AndroidManifest.xml declares CAMERA (react-native-image-picker needs it
+ * present to offer camera capture at all) — but declaring it makes the app
+ * responsible for the Android 6+ runtime request too. Skipping this makes
+ * launchCamera silently refuse with "Some files were skipped ... obtain the
+ * same [permission]" instead of opening the camera. iOS handles this itself
+ * via Info.plist, so this is a no-op there.
+ */
+export async function ensureCameraPermission(): Promise<boolean> {
+  if (Platform.OS !== 'android') {
+    return true;
+  }
+  const already = await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.CAMERA);
+  if (already) {
+    return true;
+  }
+  const result = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.CAMERA, {
+    title: 'Camera access',
+    message: 'WebNest Studio needs camera access to take a photo.',
+    buttonPositive: 'Allow',
+    buttonNegative: 'Not now',
+  });
+  return result === PermissionsAndroid.RESULTS.GRANTED;
+}
 
 export const MAX_ATTACHMENTS = 10;
 export const MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024;
@@ -115,6 +141,15 @@ function fromAssets(assets: Asset[] | undefined): PickResult {
   );
 }
 
+// Modern phone cameras shoot 12MP+ (often 5-15MB per photo); chat attachments
+// don't need that — downscaling + re-encoding to JPEG at this quality keeps
+// them sharp on a phone screen while cutting upload time dramatically.
+const IMAGE_COMPRESSION = {
+  quality: 0.7 as const,
+  maxWidth: 1600,
+  maxHeight: 1600,
+};
+
 export async function pickFromLibrary(): Promise<PickResult> {
   try {
     const res = await launchImageLibrary({
@@ -122,6 +157,7 @@ export async function pickFromLibrary(): Promise<PickResult> {
       mediaType: 'photo',
       selectionLimit: MAX_ATTACHMENTS,
       includeBase64: false,
+      ...IMAGE_COMPRESSION,
     });
     if (res.didCancel) {
       return EMPTY;
@@ -136,11 +172,20 @@ export async function pickFromLibrary(): Promise<PickResult> {
 }
 
 export async function pickFromCamera(): Promise<PickResult> {
+  const granted = await ensureCameraPermission();
+  if (!granted) {
+    return {
+      files: [],
+      rejected: ['Camera permission is needed to take a photo — enable it in Settings.'],
+      cancelled: false,
+    };
+  }
   try {
     const res = await launchCamera({
       mediaType: 'photo',
       saveToPhotos: false,
       includeBase64: false,
+      ...IMAGE_COMPRESSION,
     });
     if (res.didCancel) {
       return EMPTY;

@@ -137,6 +137,31 @@ export type ProjectDetail = ProjectSummary & {
   stages: ProjectStage[]; // always the full 6, order_index 0->5
 };
 
+/* ------------------------------------------------------------ admin: projects --- */
+// Wire shapes for /api/admin/projects. Admin-only — see AuthContext role gate.
+
+export type AdminProjectRow = ProjectDetail & {
+  client_email: string;
+  client_name: string | null;
+};
+
+export type AdminProjectCreatePayload = {
+  client_email: string;
+  name: string;
+  summary?: string;
+  current_stage?: SdlcStageKey;
+  create_conversation?: boolean;
+};
+
+export type AdminProjectUpdatePayload = {
+  name?: string;
+  summary?: string;
+  status?: ProjectLifecycleStatus;
+  current_stage?: SdlcStageKey;
+  progress_percent?: number | null;
+  create_conversation?: boolean;
+};
+
 /* ------------------------------------------------------------------ chat --- */
 // Wire shapes for the /api/messaging + /api/users/search endpoints. Every field
 // is treated as possibly-absent at the render layer — the app never assumes the

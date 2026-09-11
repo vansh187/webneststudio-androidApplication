@@ -15,6 +15,9 @@ export type RootStackParamList = {
   PortfolioDetail: { slug: string; title?: string | null };
   BlogDetail: { slug: string; title?: string | null };
   ProjectDetail: { projectId: string };
+  AdminProjects: undefined;
+  AdminAssignProject: undefined;
+  AdminProjectDetail: { projectId: string };
 };
 
 export type ChatStackParamList = {

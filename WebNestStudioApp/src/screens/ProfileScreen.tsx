@@ -8,6 +8,7 @@ import {
 } from 'react-native-image-picker';
 import Icon from 'react-native-vector-icons/Feather';
 
+import { ensureCameraPermission } from '../api/filePicker';
 import { showAlert } from '../components/AppAlert';
 import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
@@ -122,6 +123,10 @@ export function ProfileScreen() {
     async (kind: 'camera' | 'library') => {
       setAvatarBusy(true);
       try {
+        if (kind === 'camera' && !(await ensureCameraPermission())) {
+          showAlert('Camera permission needed', 'Enable camera access in Settings to take a photo.');
+          return;
+        }
         const res =
           kind === 'camera'
             ? await launchCamera({ ...PICKER_OPTIONS, saveToPhotos: false })
@@ -269,6 +274,13 @@ export function ProfileScreen() {
       </View>
 
       <View style={styles.links}>
+        {auth.user?.role === 'admin' ? (
+          <LinkRow
+            icon="briefcase"
+            label="Manage client projects"
+            onPress={() => navigation.navigate('AdminProjects')}
+          />
+        ) : null}
         <LinkRow icon="book-open" label="Our story & vision" onPress={() => navigation.navigate('Story')} />
         <LinkRow icon="grid" label="Services catalogue" onPress={() => navigation.navigate('Services')} />
         <LinkRow icon="message-circle" label="Chat on WhatsApp" onPress={() => openExternal(CONTACT.whatsappHref)} />

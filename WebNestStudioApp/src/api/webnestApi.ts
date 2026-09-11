@@ -1,5 +1,8 @@
 import { api } from './client';
 import {
+  AdminProjectCreatePayload,
+  AdminProjectRow,
+  AdminProjectUpdatePayload,
   BlogPost,
   ChatMessage,
   Conversation,
@@ -83,6 +86,54 @@ export const webnestApi = {
 
   getMyProject: (id: string) =>
     api.get<ProjectDetail>(`/api/me/projects/${id}`).then(response => response.data),
+
+  /* ------------------------------------------------------ admin: projects --- */
+
+  adminListProjects: (
+    opts: { clientEmail?: string; status?: string; limit?: number; offset?: number } = {},
+  ) =>
+    api
+      .get<{ projects: AdminProjectRow[]; total: number }>('/api/admin/projects', {
+        params: {
+          client_email: opts.clientEmail || undefined,
+          status: opts.status || undefined,
+          limit: opts.limit ?? 20,
+          offset: opts.offset ?? 0,
+        },
+      })
+      .then(response => ({
+        projects: response.data?.projects ?? [],
+        total: response.data?.total ?? 0,
+      })),
+
+  adminGetProject: (id: string) =>
+    api.get<AdminProjectRow>(`/api/admin/projects/${id}`).then(response => response.data),
+
+  adminCreateProject: (payload: AdminProjectCreatePayload) =>
+    api
+      .post<AdminProjectRow>('/api/admin/projects', {
+        client_email: payload.client_email,
+        name: payload.name,
+        summary: payload.summary,
+        current_stage: payload.current_stage,
+        create_conversation: payload.create_conversation,
+      })
+      .then(response => response.data),
+
+  adminUpdateProject: (id: string, payload: AdminProjectUpdatePayload) =>
+    api.patch<AdminProjectRow>(`/api/admin/projects/${id}`, payload).then(response => response.data),
+
+  adminUpdateProjectStage: (
+    id: string,
+    stageKey: string,
+    payload: { state?: 'pending' | 'in_progress' | 'done'; note?: string },
+  ) =>
+    api
+      .patch<AdminProjectRow>(`/api/admin/projects/${id}/stages/${stageKey}`, payload)
+      .then(response => response.data),
+
+  adminArchiveProject: (id: string) =>
+    api.delete(`/api/admin/projects/${id}`).then(response => response.data),
 
   /* --------------------------------------------------------------- chat --- */
 

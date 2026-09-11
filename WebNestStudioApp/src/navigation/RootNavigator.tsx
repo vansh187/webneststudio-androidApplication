@@ -14,6 +14,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Feather';
 
 import { Gradient } from '../components/Gradient';
+import { AdminAssignProjectScreen } from '../screens/admin/AdminAssignProjectScreen';
+import { AdminProjectDetailScreen } from '../screens/admin/AdminProjectDetailScreen';
+import { AdminProjectListScreen } from '../screens/admin/AdminProjectListScreen';
 import { BlogDetailScreen } from '../screens/BlogDetailScreen';
 import { BlogScreen } from '../screens/BlogScreen';
 import { ChatListScreen } from '../screens/chat/ChatListScreen';
@@ -216,6 +219,21 @@ function AppStack() {
       <Stack.Screen
         name="ProjectDetail"
         component={ProjectDetailScreen}
+        options={{ title: 'Project' }}
+      />
+      <Stack.Screen
+        name="AdminProjects"
+        component={AdminProjectListScreen}
+        options={{ title: 'Projects' }}
+      />
+      <Stack.Screen
+        name="AdminAssignProject"
+        component={AdminAssignProjectScreen}
+        options={{ title: 'New project' }}
+      />
+      <Stack.Screen
+        name="AdminProjectDetail"
+        component={AdminProjectDetailScreen}
         options={{ title: 'Project' }}
       />
       <Stack.Screen
