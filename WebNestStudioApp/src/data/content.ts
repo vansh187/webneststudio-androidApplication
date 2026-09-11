@@ -21,6 +21,13 @@ export const CONTACT = {
   instagramHref: 'https://www.instagram.com/webneststudio112026',
 };
 
+export const LEGAL = {
+  privacyPolicyHref: 'https://www.webneststudio.co.in/privacy-policy',
+  accountDeletionHref: 'https://www.webneststudio.co.in/account-deletion',
+  accountDeletionEmailHref:
+    'mailto:vansh.duggal@webneststudio.co.in?subject=WebNest%20Studio%20account%20deletion%20request',
+};
+
 export const VISION = {
   eyebrow: 'Our Vision',
   statement:

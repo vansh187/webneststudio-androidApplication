@@ -19,7 +19,7 @@ import { Screen } from '../components/Screen';
 import { Select } from '../components/Select';
 import { EmptyView, ErrorView, LoadingView } from '../components/StateView';
 import { Text } from '../components/Text';
-import { CONTACT } from '../data/content';
+import { CONTACT, LEGAL } from '../data/content';
 import { useAuth } from '../features/auth/AuthContext';
 import { BiometricToggle } from '../features/auth/BiometricToggle';
 import { clearAvatar, getAvatar, setAvatar } from '../features/profile/avatarStore';
@@ -155,6 +155,21 @@ export function ProfileScreen() {
     clearAvatar();
   }, []);
 
+  const requestAccountDeletion = useCallback(() => {
+    showAlert(
+      'Delete account',
+      'We will open the account deletion request page. You can also email support from there.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Continue',
+          style: 'destructive',
+          onPress: () => openExternal(LEGAL.accountDeletionHref),
+        },
+      ],
+    );
+  }, []);
+
   return (
     <Screen
       refreshing={projectsQuery.isFetching}
@@ -285,6 +300,16 @@ export function ProfileScreen() {
         <LinkRow icon="grid" label="Services catalogue" onPress={() => navigation.navigate('Services')} />
         <LinkRow icon="message-circle" label="Chat on WhatsApp" onPress={() => openExternal(CONTACT.whatsappHref)} />
         <LinkRow icon="phone" label={CONTACT.phone} onPress={() => openExternal(CONTACT.phoneHref)} />
+        <LinkRow
+          icon="shield"
+          label="Privacy policy"
+          onPress={() => openExternal(LEGAL.privacyPolicyHref)}
+        />
+        <LinkRow
+          icon="user-x"
+          label="Delete account"
+          onPress={requestAccountDeletion}
+        />
         <LinkRow
           icon="credit-card"
           label="Visiting card"
