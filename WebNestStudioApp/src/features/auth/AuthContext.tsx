@@ -27,6 +27,7 @@ type AuthContextValue = {
   verifyOtp: (email: string, otpCode: string) => Promise<void>;
   resendOtp: (email: string) => Promise<void>;
   logout: () => Promise<void>;
+  deleteAccount: () => Promise<void>;
   refreshUser: () => Promise<void>;
   // Biometric login
   biometry: BiometryType | null;
@@ -105,6 +106,13 @@ export function AuthProvider({ children }: PropsWithChildren) {
         await webnestApi.resendOtp(email);
       },
       logout: async () => {
+        await clearSession();
+        setUser(null);
+      },
+      deleteAccount: async () => {
+        await webnestApi.deleteAccount();
+        await disableBiometricLogin();
+        setBiometricEnabled(false);
         await clearSession();
         setUser(null);
       },

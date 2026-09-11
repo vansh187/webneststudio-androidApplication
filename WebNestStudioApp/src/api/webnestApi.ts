@@ -47,6 +47,7 @@ export const webnestApi = {
       .post('/api/auth/resend-otp', { email, purpose: 'signup' })
       .then(response => response.data),
   me: () => api.get<User>('/api/auth/me').then(response => response.data),
+  deleteAccount: () => api.delete('/api/auth/me').then(response => response.data),
   servicesPreview: () =>
     api
       .get<Service[]>('/api/home/services-preview', { params: { limit: 4 } })

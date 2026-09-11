@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "android": "react-native run-android",
-    "bundle:android": "if not exist D:\\tmp mkdir D:\\tmp && set TMP=D:\\tmp&& set TEMP=D:\\tmp&& cd android && set NODE_OPTIONS=--max-old-space-size=4096&& set CMAKE_BUILD_PARALLEL_LEVEL=1&& .\\gradlew.bat bundleRelease",
+    "bundle:android": "powershell -ExecutionPolicy Bypass -File scripts/build-android-release.ps1",
     "lint": "eslint .",
     "start": "react-native start",
     "test": "jest"
