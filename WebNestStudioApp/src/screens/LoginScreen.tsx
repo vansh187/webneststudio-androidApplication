@@ -15,10 +15,12 @@ import { FormInput } from '../components/FormInput';
 import { Logo } from '../components/Logo';
 import { Screen } from '../components/Screen';
 import { Text } from '../components/Text';
+import { LEGAL } from '../data/content';
 import { useAuth } from '../features/auth/AuthContext';
 import { AuthStackParamList } from '../navigation/types';
 import { colors } from '../theme/colors';
 import { radii, spacing } from '../theme/spacing';
+import { openExternal } from '../utils/linking';
 
 const schema = z.object({
   email: z.string().email('Enter a valid email'),
@@ -168,6 +170,9 @@ export function LoginScreen({ navigation }: Props) {
         <Text variant="bodyStrong" tone="gold">
           Create an account
         </Text>
+      </Pressable>
+      <Pressable style={styles.altRow} onPress={() => openExternal(LEGAL.privacyPolicyHref)}>
+        <Text variant="caption" tone="tertiary">Privacy policy</Text>
       </Pressable>
     </Screen>
   );

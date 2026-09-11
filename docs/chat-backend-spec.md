@@ -324,7 +324,7 @@ Rename a group. `owner`/`admin` only, `type: "group"` only.
 
 ### 6.6 `POST /api/messaging/conversations/{conversation_id}/participants`
 
-Add members. `owner`/`admin` only. Re-adding someone who left clears their `left_at`.
+Add members. Any active participant. Re-adding someone who left clears their `left_at`.
 
 **Request** `{ "user_ids": ["a1b2…", "f6g7…"] }`
 **200** → `Conversation` (updated participant list)
@@ -471,7 +471,8 @@ Add `search(query, exclude_user_id, limit=20)` to `database/user_persistence.py`
 |---|---|
 | read conversation / messages, send message, react, mark-read | any **active participant** |
 | create group / DM | any authenticated user |
-| rename group, add participants, remove *other* participants | `owner` or `admin` |
+| rename group, remove *other* participants | `owner` or `admin` |
+| add participants | any active participant |
 | leave (remove self) | any participant |
 | delete a message | its `sender`, or conversation `owner` / `admin` |
 | search users | any authenticated user (results limited to active accounts, self excluded) |
@@ -599,8 +600,9 @@ conversation as a project room (`chat-frontend-integration.md` addendum).
 
 ### 11.4 Authorisation — unchanged
 
-The §7 matrix applies as-is. The project's client is `owner` (rename + add/remove
-members + can't be removed by anyone else). WebNest staff are added as normal `member`s
+The §7 matrix applies as-is. The project's client is `owner` (rename + remove other
+members + can't be removed by anyone else; any active participant, including staff
+`member`s, can add new members). WebNest staff are added as normal `member`s
 (or `admin` promoted server-side) via §6.6. Only registered active users are addable —
 the §6.15 constraint is unchanged; invite-by-email stays out of scope.
 

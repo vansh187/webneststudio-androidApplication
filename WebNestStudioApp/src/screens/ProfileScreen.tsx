@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { Component, ErrorInfo, ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, StyleSheet, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import {
@@ -8,6 +8,7 @@ import {
 } from 'react-native-image-picker';
 import Icon from 'react-native-vector-icons/Feather';
 
+import { ensureCameraPermission } from '../api/filePicker';
 import { showAlert } from '../components/AppAlert';
 import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
@@ -18,7 +19,8 @@ import { Screen } from '../components/Screen';
 import { Select } from '../components/Select';
 import { EmptyView, ErrorView, LoadingView } from '../components/StateView';
 import { Text } from '../components/Text';
-import { CONTACT } from '../data/content';
+import { getErrorMessage, getHttpStatus } from '../api/client';
+import { CONTACT, LEGAL } from '../data/content';
 import { useAuth } from '../features/auth/AuthContext';
 import { BiometricToggle } from '../features/auth/BiometricToggle';
 import { clearAvatar, getAvatar, setAvatar } from '../features/profile/avatarStore';
@@ -96,6 +98,7 @@ export function ProfileScreen() {
 
   const [avatar, setAvatarState] = useState<string | null>(null);
   const [avatarBusy, setAvatarBusy] = useState(false);
+  const [deleteBusy, setDeleteBusy] = useState(false);
 
   useEffect(() => {
     getAvatar().then(setAvatarState);
@@ -122,6 +125,10 @@ export function ProfileScreen() {
     async (kind: 'camera' | 'library') => {
       setAvatarBusy(true);
       try {
+        if (kind === 'camera' && !(await ensureCameraPermission())) {
+          showAlert('Camera permission needed', 'Enable camera access in Settings to take a photo.');
+          return;
+        }
         const res =
           kind === 'camera'
             ? await launchCamera({ ...PICKER_OPTIONS, saveToPhotos: false })
@@ -149,6 +156,59 @@ export function ProfileScreen() {
     setAvatarState(null);
     clearAvatar();
   }, []);
+
+  const openAccountDeletionInfo = useCallback(() => {
+    showAlert(
+      'Delete account',
+      'We will open the account deletion information page. You can also email support from there.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Continue',
+          style: 'destructive',
+          onPress: () => openExternal(LEGAL.accountDeletionHref),
+        },
+      ],
+    );
+  }, []);
+
+  const confirmAccountDeletion = useCallback(() => {
+    if (deleteBusy) {
+      return;
+    }
+    showAlert(
+      'Delete account permanently?',
+      'This will deactivate your WebNest Studio account, revoke your app session, and remove access to your client portal. Project records may be retained where required for service, legal, or security reasons.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            setDeleteBusy(true);
+            try {
+              await auth.deleteAccount();
+              clearAvatar();
+              setAvatarState(null);
+              showAlert('Account deleted', 'Your account has been deleted and you have been signed out.');
+            } catch (error) {
+              const status = getHttpStatus(error);
+              const fallback =
+                status === 404 || status === 405
+                  ? 'Account deletion is not available on the server yet. Please use the account deletion page or contact support.'
+                  : 'We could not delete your account right now. Please try again.';
+              showAlert('Could not delete account', getErrorMessage(error, fallback), [
+                { text: 'Open help page', onPress: () => openExternal(LEGAL.accountDeletionHref) },
+                { text: 'OK', style: 'cancel' },
+              ]);
+            } finally {
+              setDeleteBusy(false);
+            }
+          },
+        },
+      ],
+    );
+  }, [auth, deleteBusy]);
 
   return (
     <Screen
@@ -269,10 +329,22 @@ export function ProfileScreen() {
       </View>
 
       <View style={styles.links}>
+        {auth.user?.role === 'admin' ? (
+          <LinkRow
+            icon="briefcase"
+            label="Manage client projects"
+            onPress={() => navigation.navigate('AdminProjects')}
+          />
+        ) : null}
         <LinkRow icon="book-open" label="Our story & vision" onPress={() => navigation.navigate('Story')} />
         <LinkRow icon="grid" label="Services catalogue" onPress={() => navigation.navigate('Services')} />
         <LinkRow icon="message-circle" label="Chat on WhatsApp" onPress={() => openExternal(CONTACT.whatsappHref)} />
         <LinkRow icon="phone" label={CONTACT.phone} onPress={() => openExternal(CONTACT.phoneHref)} />
+        <LinkRow
+          icon="shield"
+          label="Privacy policy"
+          onPress={() => openExternal(LEGAL.privacyPolicyHref)}
+        />
         <LinkRow
           icon="credit-card"
           label="Visiting card"
@@ -286,8 +358,51 @@ export function ProfileScreen() {
         icon="log-out"
         onPress={() => auth.logout().catch(() => showAlert('Could not log out'))}
       />
+
+      <AccountActionBoundary>
+        <View style={styles.dangerZone}>
+          <Button
+            title="Delete account"
+            variant="ghost"
+            icon="user-x"
+            loading={deleteBusy}
+            disabled={deleteBusy}
+            onPress={confirmAccountDeletion}
+          />
+          <Pressable onPress={openAccountDeletionInfo} disabled={deleteBusy}>
+            <Text variant="caption" tone="tertiary" style={styles.deletionInfo}>
+              Account deletion policy
+            </Text>
+          </Pressable>
+        </View>
+      </AccountActionBoundary>
     </Screen>
   );
+}
+
+class AccountActionBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
+  state = { hasError: false };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error('[account-actions] caught', error, info.componentStack);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View style={styles.accountActionFallback}>
+          <Text variant="caption" tone="tertiary">
+            Account actions are unavailable right now.
+          </Text>
+        </View>
+      );
+    }
+    return this.props.children;
+  }
 }
 
 function LinkRow({ icon, label, onPress }: { icon: string; label: string; onPress: () => void }) {
@@ -398,5 +513,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     gap: spacing.md,
+  },
+  dangerZone: {
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  deletionInfo: {
+    fontWeight: '700',
+    paddingVertical: spacing.xs,
+  },
+  accountActionFallback: {
+    alignItems: 'center',
+    marginTop: spacing.md,
+    padding: spacing.sm,
   },
 });

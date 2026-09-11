@@ -1,4 +1,5 @@
 import type {
+  AdminProjectRow,
   ProjectDetail,
   ProjectLifecycleStatus,
   ProjectStage,
@@ -172,5 +173,15 @@ export function normalizeDetail(input: unknown): ProjectDetail {
     summary: asNullableText(raw.summary),
     created_at: asText(raw.created_at, base.updated_at),
     stages,
+  };
+}
+
+/** Admin-only rows — same wire shape as ProjectDetail plus the client's identity. */
+export function normalizeAdminRow(input: unknown): AdminProjectRow {
+  const raw = asRaw(input);
+  return {
+    ...normalizeDetail(raw),
+    client_email: asText(raw.client_email),
+    client_name: asNullableText(raw.client_name),
   };
 }

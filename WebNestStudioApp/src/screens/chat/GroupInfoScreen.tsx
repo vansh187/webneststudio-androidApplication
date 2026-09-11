@@ -9,12 +9,14 @@ import { useQueryClient } from '@tanstack/react-query';
 import Icon from 'react-native-vector-icons/Feather';
 
 import { getErrorMessage } from '../../api/client';
+import type { ContactEmailEntry } from '../../api/contactsPicker';
 import { webnestApi } from '../../api/webnestApi';
 import { showAlert } from '../../components/AppAlert';
 import { Button } from '../../components/Button';
 import { ChatAvatar } from '../../components/chat/ChatAvatar';
 import { ChatErrorBoundary } from '../../components/chat/ChatErrorBoundary';
 import { PersonRow } from '../../components/chat/PersonRow';
+import { ContactPickerSheet } from '../../components/ContactPickerSheet';
 import { FormInput } from '../../components/FormInput';
 import { Screen } from '../../components/Screen';
 import { Text } from '../../components/Text';
@@ -49,7 +51,12 @@ export function GroupInfoScreen() {
   const [savingName, setSavingName] = useState(false);
   const [adding, setAdding] = useState(false);
   const [working, setWorking] = useState(false);
+  const [contactsOpen, setContactsOpen] = useState(false);
   const search = usePeopleSearch();
+
+  const onPickContact = (entry: ContactEmailEntry) => {
+    search.setQ(entry.email);
+  };
 
   useEffect(() => {
     setRename(conversation?.title ?? '');
@@ -189,7 +196,7 @@ export function GroupInfoScreen() {
               <Text variant="label" tone="gold">
                 Members
               </Text>
-              {isGroup && isManager ? (
+              {isGroup ? (
                 <Pressable onPress={() => setAdding(a => !a)} hitSlop={8} style={styles.addToggle}>
                   <Icon name={adding ? 'x' : 'user-plus'} size={16} color={colors.goldPrimary} />
                   <Text variant="caption" tone="gold">
@@ -209,6 +216,15 @@ export function GroupInfoScreen() {
                   value={search.q}
                   onChangeText={search.setQ}
                 />
+                <Pressable
+                  onPress={() => setContactsOpen(true)}
+                  hitSlop={8}
+                  style={styles.contactsLink}>
+                  <Icon name="book-open" size={13} color={colors.goldPrimary} />
+                  <Text variant="caption" tone="gold">
+                    Pick from contacts
+                  </Text>
+                </Pressable>
                 {(() => {
                   const addable = search.results.filter(
                     u => !participants.some(p => p.user.id === u.id),
@@ -272,6 +288,12 @@ export function GroupInfoScreen() {
             <View style={styles.leaveWrap}>
               <Button title="Leave conversation" variant="outline" icon="log-out" onPress={leave} />
             </View>
+
+            <ContactPickerSheet
+              visible={contactsOpen}
+              onClose={() => setContactsOpen(false)}
+              onPick={onPickContact}
+            />
           </>
         )}
       </Screen>
@@ -315,6 +337,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginTop: spacing.md,
     paddingHorizontal: 2,
+  },
+  contactsLink: {
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    gap: 4,
+    marginLeft: 2,
+    marginTop: spacing.xs,
   },
   addToggle: {
     alignItems: 'center',

@@ -14,9 +14,11 @@ import { FormInput } from '../components/FormInput';
 import { Logo } from '../components/Logo';
 import { Screen } from '../components/Screen';
 import { Text } from '../components/Text';
+import { LEGAL } from '../data/content';
 import { useAuth } from '../features/auth/AuthContext';
 import { AuthStackParamList } from '../navigation/types';
 import { spacing } from '../theme/spacing';
+import { openExternal } from '../utils/linking';
 
 const schema = z.object({
   full_name: z.string().min(2, 'Enter your name'),
@@ -125,6 +127,10 @@ export function SignupScreen({ navigation }: Props) {
         <Text variant="bodyStrong" tone="gold">
           Log in
         </Text>
+      </Pressable>
+      <Pressable style={styles.altRow} onPress={() => openExternal(LEGAL.privacyPolicyHref)}>
+        <Text variant="caption" tone="tertiary">By creating an account, you agree to our </Text>
+        <Text variant="caption" tone="gold">privacy policy</Text>
       </Pressable>
     </Screen>
   );
