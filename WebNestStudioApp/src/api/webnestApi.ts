@@ -3,12 +3,14 @@ import {
   AdminProjectCreatePayload,
   AdminProjectRow,
   AdminProjectUpdatePayload,
+  BlockUserResult,
   BlogPost,
   ChatMessage,
   Conversation,
   Faq,
   LeadPayload,
   MessageReactionGroup,
+  MessageReport,
   OutgoingAttachment,
   PortfolioItem,
   ProjectDetail,
@@ -229,6 +231,33 @@ export const webnestApi = {
   deleteMessage: (messageId: string) =>
     api
       .delete<ChatMessage>(`/api/messaging/messages/${messageId}`)
+      .then(response => response.data),
+
+  reportMessage: (messageId: string, reason: string) =>
+    api
+      .post<MessageReport>(`/api/messaging/messages/${messageId}/report`, { reason })
+      .then(response => response.data),
+
+  /* --------------------------------------------------- admin: moderation --- */
+
+  adminListReports: (status: 'open' | 'resolved' = 'open') =>
+    api
+      .get<{ reports: MessageReport[] }>('/api/admin/reports', { params: { status } })
+      .then(response => response.data?.reports ?? []),
+
+  adminResolveReport: (reportId: string) =>
+    api
+      .post<MessageReport>(`/api/admin/reports/${reportId}/resolve`)
+      .then(response => response.data),
+
+  adminBlockUser: (userId: string) =>
+    api
+      .post<BlockUserResult>(`/api/admin/users/${userId}/block`)
+      .then(response => response.data),
+
+  adminUnblockUser: (userId: string) =>
+    api
+      .post<BlockUserResult>(`/api/admin/users/${userId}/unblock`)
       .then(response => response.data),
 
   searchUsers: (q: string) =>

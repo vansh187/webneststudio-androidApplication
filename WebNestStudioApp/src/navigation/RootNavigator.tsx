@@ -17,6 +17,7 @@ import { Gradient } from '../components/Gradient';
 import { AdminAssignProjectScreen } from '../screens/admin/AdminAssignProjectScreen';
 import { AdminProjectDetailScreen } from '../screens/admin/AdminProjectDetailScreen';
 import { AdminProjectListScreen } from '../screens/admin/AdminProjectListScreen';
+import { AdminReportsScreen } from '../screens/admin/AdminReportsScreen';
 import { BlogDetailScreen } from '../screens/BlogDetailScreen';
 import { BlogScreen } from '../screens/BlogScreen';
 import { ChatListScreen } from '../screens/chat/ChatListScreen';
@@ -235,6 +236,11 @@ function AppStack() {
         name="AdminProjectDetail"
         component={AdminProjectDetailScreen}
         options={{ title: 'Project' }}
+      />
+      <Stack.Screen
+        name="AdminReports"
+        component={AdminReportsScreen}
+        options={{ title: 'Reports' }}
       />
       <Stack.Screen
         name="PortfolioDetail"

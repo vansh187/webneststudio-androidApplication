@@ -1,6 +1,8 @@
+import { Video as VideoCompressor, getVideoMetaData } from 'react-native-compressor';
+
 import { webnestApi } from './webnestApi';
 import type { OutgoingAttachment } from '../types/api';
-import type { PickedFile } from './filePicker';
+import { MAX_ATTACHMENT_BYTES, type PickedFile } from './filePicker';
 
 export type UploadOutcome = {
   attachments: OutgoingAttachment[];
@@ -13,7 +15,45 @@ type OneResult =
   | { ok: true; index: number; attachment: OutgoingAttachment }
   | { ok: false; index: number; message: string };
 
-async function uploadOne(file: PickedFile, index: number): Promise<OneResult> {
+/**
+ * Videos come off the picker uncompressed — this re-encodes to a much
+ * smaller file before it's ever signed/uploaded. Never throws: a
+ * compression failure just falls back to the original file, which the
+ * MAX_ATTACHMENT_BYTES check in uploadOne accepts or rejects on its own
+ * merits, exactly like any other attachment.
+ */
+async function compressVideoIfNeeded(file: PickedFile): Promise<PickedFile> {
+  if (file.kind !== 'video') {
+    return file;
+  }
+  try {
+    const compressedUri = await VideoCompressor.compress(file.uri, {
+      compressionMethod: 'auto',
+    });
+    const meta = await getVideoMetaData(compressedUri);
+    const compressedSize = typeof meta?.size === 'number' && meta.size > 0 ? meta.size : file.size;
+    return {
+      ...file,
+      uri: compressedUri,
+      size: compressedSize,
+      width: typeof meta?.width === 'number' ? meta.width : file.width,
+      height: typeof meta?.height === 'number' ? meta.height : file.height,
+    };
+  } catch {
+    return file;
+  }
+}
+
+async function uploadOne(pickedFile: PickedFile, index: number): Promise<OneResult> {
+  const file = await compressVideoIfNeeded(pickedFile);
+  if (file.size > MAX_ATTACHMENT_BYTES) {
+    const limitMb = Math.round(MAX_ATTACHMENT_BYTES / (1024 * 1024));
+    return {
+      ok: false,
+      index,
+      message: `"${file.name}" — still larger than ${limitMb} MB after compression`,
+    };
+  }
   try {
     const target = await webnestApi.signAttachmentUpload({
       filename: file.name,

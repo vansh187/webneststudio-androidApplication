@@ -34,20 +34,43 @@ export async function ensureCameraPermission(): Promise<boolean> {
 
 export const MAX_ATTACHMENTS = 10;
 export const MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024;
+// Raw (pre-compression) ceiling for a picked video — uploads.ts compresses it
+// down before it ever reaches MAX_ATTACHMENT_BYTES, so the picker only needs
+// to guard against picking something absurd (e.g. a multi-hour recording).
+export const MAX_RAW_VIDEO_BYTES = 300 * 1024 * 1024;
 
 const ALLOWED_MIME = new Set([
+  // Images
   'image/jpeg',
   'image/png',
   'image/webp',
   'image/gif',
   'image/heic',
+  // Documents
   'application/pdf',
   'text/plain',
+  'text/csv',
+  'application/json',
   'application/msword',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   'application/vnd.ms-excel',
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.ms-powerpoint',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
   'application/zip',
+  // Video
+  'video/mp4',
+  'video/quicktime',
+  'video/webm',
+  'video/3gpp',
+  // Audio
+  'audio/mpeg',
+  'audio/mp4',
+  'audio/aac',
+  'audio/wav',
+  'audio/x-wav',
+  'audio/ogg',
+  'audio/webm',
 ]);
 
 export type PickedFile = {
@@ -73,6 +96,12 @@ export function kindFromMime(mime: string): AttachmentKind {
   if (mime === 'application/pdf') {
     return 'pdf';
   }
+  if (mime.startsWith('video/')) {
+    return 'video';
+  }
+  if (mime.startsWith('audio/')) {
+    return 'audio';
+  }
   return 'file';
 }
 
@@ -95,12 +124,17 @@ function screen(
       rejected.push(`"${name}" — that file type can't be shared`);
       continue;
     }
-    if (rawSize > MAX_ATTACHMENT_BYTES) {
-      rejected.push(`"${name}" — larger than 25 MB`);
+    // Video gets compressed before upload (see uploads.ts), so it's screened
+    // against a much higher raw ceiling here — the real 25 MB cap is enforced
+    // after compression, against the file compression actually produces.
+    const sizeCeiling = kind === 'video' ? MAX_RAW_VIDEO_BYTES : MAX_ATTACHMENT_BYTES;
+    if (rawSize > sizeCeiling) {
+      const limitMb = Math.round(sizeCeiling / (1024 * 1024));
+      rejected.push(`"${name}" — larger than ${limitMb} MB`);
       continue;
     }
     // Documents reliably report a size; a missing one means we can't enforce the
-    // 25 MB cap before signing, so refuse rather than risk a huge upload.
+    // cap before signing, so refuse rather than risk a huge upload.
     if (rawSize === 0 && kind !== 'image') {
       rejected.push(`"${name}" — couldn't read its size`);
       continue;
@@ -153,8 +187,10 @@ const IMAGE_COMPRESSION = {
 export async function pickFromLibrary(): Promise<PickResult> {
   try {
     const res = await launchImageLibrary({
-      // Photos only — no video MIME type is on the backend allow-list.
-      mediaType: 'photo',
+      // Photos and videos — IMAGE_COMPRESSION's quality/maxWidth/maxHeight
+      // only affect photo assets and are a no-op for video ones; video gets
+      // its own compression pass in uploads.ts before it's uploaded.
+      mediaType: 'mixed',
       selectionLimit: MAX_ATTACHMENTS,
       includeBase64: false,
       ...IMAGE_COMPRESSION,
@@ -220,9 +256,27 @@ export async function pickDocuments(): Promise<PickResult> {
   }
 
   try {
+    const wanted = [
+      mod.types?.pdf,
+      mod.types?.images,
+      mod.types?.video,
+      mod.types?.audio,
+      mod.types?.docx,
+      mod.types?.doc,
+      mod.types?.plainText,
+      mod.types?.csv,
+      mod.types?.json,
+      mod.types?.xlsx,
+      mod.types?.xls,
+      mod.types?.pptx,
+      mod.types?.ppt,
+      mod.types?.zip,
+    ];
     const picked = await mod.pick({
       allowMultiSelection: true,
-      type: [mod.types?.pdf, mod.types?.images, mod.types?.docx, mod.types?.doc, mod.types?.plainText, mod.types?.xlsx].filter(Boolean),
+      // types.csv is itself an array of MIME strings on some platforms — flatten
+      // so every entry passed to the native picker is a single type string.
+      type: wanted.flat().filter(Boolean),
     });
     return screen(
       (Array.isArray(picked) ? picked : []).map((p: any) => ({

@@ -336,6 +336,13 @@ export function ProfileScreen() {
             onPress={() => navigation.navigate('AdminProjects')}
           />
         ) : null}
+        {auth.user?.role === 'admin' ? (
+          <LinkRow
+            icon="flag"
+            label="Reported messages"
+            onPress={() => navigation.navigate('AdminReports')}
+          />
+        ) : null}
         <LinkRow icon="book-open" label="Our story & vision" onPress={() => navigation.navigate('Story')} />
         <LinkRow icon="grid" label="Services catalogue" onPress={() => navigation.navigate('Services')} />
         <LinkRow icon="message-circle" label="Chat on WhatsApp" onPress={() => openExternal(CONTACT.whatsappHref)} />

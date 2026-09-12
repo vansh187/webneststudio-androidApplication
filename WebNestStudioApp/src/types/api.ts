@@ -169,7 +169,7 @@ export type AdminProjectUpdatePayload = {
 
 export type ConversationType = 'group' | 'direct';
 export type ParticipantRole = 'owner' | 'admin' | 'member';
-export type AttachmentKind = 'image' | 'pdf' | 'file';
+export type AttachmentKind = 'image' | 'pdf' | 'video' | 'audio' | 'file';
 
 export type ChatUserSummary = {
   id: string;
@@ -246,6 +246,23 @@ export type UserSearchResult = {
   id: string;
   full_name: string | null;
   email: string;
+};
+
+export type MessageReport = {
+  id: string;
+  message_id: string;
+  reporter: ChatUserSummary;
+  reported_user: ChatUserSummary;
+  reason: string;
+  status: 'open' | 'resolved';
+  message_preview: string | null;
+  message_deleted: boolean;
+  created_at: string;
+};
+
+export type BlockUserResult = {
+  id: string;
+  is_active: boolean;
 };
 
 /** Payload the app builds for POST /conversations/{id}/messages. */

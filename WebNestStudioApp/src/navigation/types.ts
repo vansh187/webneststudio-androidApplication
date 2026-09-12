@@ -18,6 +18,7 @@ export type RootStackParamList = {
   AdminProjects: undefined;
   AdminAssignProject: undefined;
   AdminProjectDetail: { projectId: string };
+  AdminReports: undefined;
 };
 
 export type ChatStackParamList = {
