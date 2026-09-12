@@ -332,6 +332,28 @@ export function ChatRoomScreen() {
     [applyLocal],
   );
 
+  const submitReport = useCallback((message: ChatMessage, reason: string) => {
+    webnestApi
+      .reportMessage(message.id, reason)
+      .then(() => showAlert('Reported', "Thanks — we'll review this and take action if needed."))
+      .catch(err => showAlert("Couldn't send report", getErrorMessage(err)));
+  }, []);
+
+  const confirmReport = useCallback(
+    (message: ChatMessage) => {
+      showAlert('Report this message', 'Why are you reporting it?', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Spam', onPress: () => submitReport(message, 'Spam') },
+        { text: 'Harassment', onPress: () => submitReport(message, 'Harassment') },
+        {
+          text: 'Inappropriate content',
+          onPress: () => submitReport(message, 'Inappropriate content'),
+        },
+      ]);
+    },
+    [submitReport],
+  );
+
   const openActions = useCallback((message: ChatMessage) => setActionTarget(message), []);
 
   const actionSheetActions = useMemo(() => {
@@ -354,6 +376,15 @@ export function ChatRoomScreen() {
         onPress: () => setReactTarget(actionTarget),
       },
     ];
+    if (!own && !actionTarget.is_deleted) {
+      list.push({
+        key: 'report',
+        label: 'Report',
+        icon: 'flag',
+        tone: 'danger',
+        onPress: () => confirmReport(actionTarget),
+      });
+    }
     if (canDelete) {
       list.push({
         key: 'delete',
@@ -364,7 +395,7 @@ export function ChatRoomScreen() {
       });
     }
     return list;
-  }, [actionTarget, myId, myParticipantRole, confirmDelete]);
+  }, [actionTarget, myId, myParticipantRole, confirmDelete, confirmReport]);
 
   return (
     <ChatErrorBoundary variant="screen" label="Conversation" onRetry={refresh}>

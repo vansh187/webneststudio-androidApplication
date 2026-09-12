@@ -248,6 +248,23 @@ export type UserSearchResult = {
   email: string;
 };
 
+export type MessageReport = {
+  id: string;
+  message_id: string;
+  reporter: ChatUserSummary;
+  reported_user: ChatUserSummary;
+  reason: string;
+  status: 'open' | 'resolved';
+  message_preview: string | null;
+  message_deleted: boolean;
+  created_at: string;
+};
+
+export type BlockUserResult = {
+  id: string;
+  is_active: boolean;
+};
+
 /** Payload the app builds for POST /conversations/{id}/messages. */
 export type OutgoingAttachment = {
   url_path: string;
