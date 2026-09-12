@@ -149,9 +149,9 @@ export function Composer({
         onClose={() => setAttachOpen(false)}
         title="Attach"
         actions={[
-          { key: 'photo', label: 'Photo', icon: 'image', onPress: () => runPicker(pickFromLibrary) },
+          { key: 'photo', label: 'Photo / Video', icon: 'image', onPress: () => runPicker(pickFromLibrary) },
           { key: 'camera', label: 'Camera', icon: 'camera', onPress: () => runPicker(pickFromCamera) },
-          { key: 'file', label: 'Document / PDF', icon: 'file-text', onPress: () => runPicker(pickDocuments) },
+          { key: 'file', label: 'Document / Audio', icon: 'file-text', onPress: () => runPicker(pickDocuments) },
         ]}
       />
     </View>

@@ -34,7 +34,13 @@ export function AttachmentView({ attachment, own = false }: Props) {
     return null;
   }
 
-  const kind = attachment.kind === 'image' || attachment.kind === 'pdf' ? attachment.kind : 'file';
+  const kind =
+    attachment.kind === 'image' ||
+    attachment.kind === 'pdf' ||
+    attachment.kind === 'video' ||
+    attachment.kind === 'audio'
+      ? attachment.kind
+      : 'file';
   const name = attachment.name || 'attachment';
 
   if (kind === 'image' && attachment.url && !imageBroken) {
@@ -70,7 +76,15 @@ export function AttachmentView({ attachment, own = false }: Props) {
       style={[styles.fileChip, own && styles.fileChipOwn]}>
       <View style={[styles.fileIcon, own && styles.fileIconOwn]}>
         <Icon
-          name={kind === 'pdf' ? 'file-text' : 'file'}
+          name={
+            kind === 'pdf'
+              ? 'file-text'
+              : kind === 'video'
+              ? 'video'
+              : kind === 'audio'
+              ? 'music'
+              : 'file'
+          }
           size={18}
           color={own ? colors.textOnGold : colors.goldPrimary}
         />

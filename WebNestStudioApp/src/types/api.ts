@@ -169,7 +169,7 @@ export type AdminProjectUpdatePayload = {
 
 export type ConversationType = 'group' | 'direct';
 export type ParticipantRole = 'owner' | 'admin' | 'member';
-export type AttachmentKind = 'image' | 'pdf' | 'file';
+export type AttachmentKind = 'image' | 'pdf' | 'video' | 'audio' | 'file';
 
 export type ChatUserSummary = {
   id: string;
