@@ -13,6 +13,11 @@ jest.mock('react-native-image-picker', () => ({
   launchImageLibrary: jest.fn(async () => ({ didCancel: true, assets: [] })),
 }));
 
+jest.mock('react-native-compressor', () => ({
+  Video: { compress: jest.fn(async (uri) => uri) },
+  getVideoMetaData: jest.fn(async () => ({ size: 0, duration: 0, width: 0, height: 0 })),
+}));
+
 jest.mock('react-native-share', () => ({
   open: jest.fn(async () => ({})),
 }));
