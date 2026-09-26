@@ -1,13 +1,10 @@
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import Icon from 'react-native-vector-icons/Feather';
 
-import type { ContactEmailEntry } from '../../api/contactsPicker';
 import { getErrorMessage } from '../../api/client';
 import { showAlert } from '../../components/AppAlert';
 import { Button } from '../../components/Button';
-import { ContactPickerSheet } from '../../components/ContactPickerSheet';
 import { FormInput } from '../../components/FormInput';
 import { PersonRow } from '../../components/chat/PersonRow';
 import { Screen } from '../../components/Screen';
@@ -41,13 +38,7 @@ export function AdminAssignProjectScreen() {
   const [summary, setSummary] = useState('');
   const [stage, setStage] = useState<SdlcStageKey>('requirements');
   const [createChat, setCreateChat] = useState(true);
-  const [contactsOpen, setContactsOpen] = useState(false);
   const create = useCreateAdminProject();
-
-  const onPickContact = (entry: ContactEmailEntry) => {
-    search.setQ(entry.email);
-    setPickedId(null);
-  };
 
   const onEmailChange = (text: string) => {
     search.setQ(text);
@@ -92,15 +83,6 @@ export function AdminAssignProjectScreen() {
           value={search.q}
           onChangeText={onEmailChange}
         />
-        <Pressable
-          onPress={() => setContactsOpen(true)}
-          hitSlop={8}
-          style={styles.contactsLink}>
-          <Icon name="book-open" size={13} color={colors.goldPrimary} />
-          <Text variant="caption" tone="gold">
-            Pick from contacts
-          </Text>
-        </Pressable>
         {search.isLoading ? null : search.enabled && search.results.length > 0 ? (
           <View style={styles.results}>
             {search.results.map(u => (
@@ -173,11 +155,6 @@ export function AdminAssignProjectScreen() {
         style={styles.submit}
       />
 
-      <ContactPickerSheet
-        visible={contactsOpen}
-        onClose={() => setContactsOpen(false)}
-        onPick={onPickContact}
-      />
     </Screen>
   );
 }
@@ -189,14 +166,6 @@ const styles = StyleSheet.create({
   },
   label: {
     marginLeft: 2,
-  },
-  contactsLink: {
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    flexDirection: 'row',
-    gap: spacing.xxs,
-    marginLeft: 2,
-    marginTop: -2,
   },
   results: {
     backgroundColor: colors.surfaceSubtle,

@@ -8,15 +8,14 @@ jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
 );
 
-jest.mock('react-native-contacts', () => ({
-  checkPermission: jest.fn(async () => 'denied'),
-  requestPermission: jest.fn(async () => 'denied'),
-  getAllWithoutPhotos: jest.fn(async () => []),
-}));
-
 jest.mock('react-native-image-picker', () => ({
   launchCamera: jest.fn(async () => ({ didCancel: true, assets: [] })),
   launchImageLibrary: jest.fn(async () => ({ didCancel: true, assets: [] })),
+}));
+
+jest.mock('react-native-compressor', () => ({
+  Video: { compress: jest.fn(async (uri) => uri) },
+  getVideoMetaData: jest.fn(async () => ({ size: 0, duration: 0, width: 0, height: 0 })),
 }));
 
 jest.mock('react-native-share', () => ({

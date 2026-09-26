@@ -128,10 +128,13 @@ export function SignupScreen({ navigation }: Props) {
           Log in
         </Text>
       </Pressable>
-      <Pressable style={styles.altRow} onPress={() => openExternal(LEGAL.privacyPolicyHref)}>
+      <View style={styles.consentRow}>
         <Text variant="caption" tone="tertiary">By creating an account, you agree to our </Text>
-        <Text variant="caption" tone="gold">privacy policy</Text>
-      </Pressable>
+        <Text variant="caption" tone="gold" onPress={() => openExternal(LEGAL.termsHref)}>terms</Text>
+        <Text variant="caption" tone="tertiary"> and </Text>
+        <Text variant="caption" tone="gold" onPress={() => openExternal(LEGAL.privacyPolicyHref)}>privacy policy</Text>
+        <Text variant="caption" tone="tertiary">. Abusive or objectionable content in chat is not allowed and may lead to removal.</Text>
+      </View>
     </Screen>
   );
 }
@@ -146,6 +149,12 @@ const styles = StyleSheet.create({
   },
   card: {
     gap: spacing.lg,
+  },
+  consentRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
   },
   altRow: {
     alignItems: 'center',
