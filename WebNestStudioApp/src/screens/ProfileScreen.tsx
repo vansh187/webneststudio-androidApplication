@@ -353,6 +353,11 @@ export function ProfileScreen() {
           onPress={() => openExternal(LEGAL.privacyPolicyHref)}
         />
         <LinkRow
+          icon="file-text"
+          label="Terms & conditions"
+          onPress={() => openExternal(LEGAL.termsHref)}
+        />
+        <LinkRow
           icon="credit-card"
           label="Visiting card"
           onPress={() => navigation.navigate('VisitingCard')}

@@ -22,6 +22,7 @@ export const CONTACT = {
 };
 
 export const LEGAL = {
+  termsHref: 'https://www.webneststudio.co.in/terms-and-conditions',
   privacyPolicyHref: 'https://www.webneststudio.co.in/privacy-policy',
   accountDeletionHref: 'https://www.webneststudio.co.in/account-deletion',
   accountDeletionEmailHref:
