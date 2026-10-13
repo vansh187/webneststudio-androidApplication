@@ -22,7 +22,8 @@ import {
   UserSearchResult,
 } from '../types/api';
 
-type MessagePage = { messages: ChatMessage[]; has_more: boolean };
+export type OtpPurpose = 'signup' | 'password_reset';
+type MessagePage ={ messages: ChatMessage[]; has_more: boolean };
 type ReactionResult = { message_id: string; reactions: MessageReactionGroup[] };
 
 export const webnestApi = {
@@ -44,11 +45,25 @@ export const webnestApi = {
         purpose: 'signup',
       })
       .then(response => response.data),
-  resendOtp: (email: string) =>
+  /** Issues a fresh code. `password_reset` also works for unverified accounts. */
+  resendOtp: (email: string, purpose: OtpPurpose = 'signup') =>
     api
-      .post('/api/auth/resend-otp', { email, purpose: 'signup' })
+      .post<{ message: string }>('/api/auth/resend-otp', { email, purpose })
+      .then(response => response.data),
+  resetPassword: (email: string, otpCode: string, newPassword: string) =>
+    api
+      .post<{ message: string }>('/api/auth/reset-password', {
+        email,
+        otp_code: otpCode,
+        new_password: newPassword,
+      })
       .then(response => response.data),
   me: () => api.get<User>('/api/auth/me').then(response => response.data),
+  /** Tells the backend to push chat messages to this device (FCM token). */
+  registerDevice: (token: string) =>
+    api.post('/api/me/devices', { token, platform: 'android' }).then(() => undefined),
+  unregisterDevice: (token: string) =>
+    api.post('/api/me/devices/unregister', { token }).then(() => undefined),
   deleteAccount: () => api.delete('/api/auth/me').then(response => response.data),
   servicesPreview: () =>
     api

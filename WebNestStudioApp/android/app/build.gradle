@@ -4,6 +4,15 @@ apply plugin: "com.facebook.react"
 apply from: project(':react-native-config').projectDir.getPath() + "/dotenv.gradle"
 apply from: file("../../node_modules/react-native-vector-icons/fonts.gradle")
 
+// Push notifications need the Firebase project's config. Until
+// android/app/google-services.json is added the app still builds; push is
+// simply off (the JS side checks for a configured Firebase app).
+if (file("google-services.json").exists()) {
+    apply plugin: "com.google.gms.google-services"
+} else {
+    logger.warn("WebNest: android/app/google-services.json is missing - push notifications are disabled in this build.")
+}
+
 def keystoreProperties = new Properties()
 def keystorePropertiesFile = rootProject.file("keystore.properties")
 if (keystorePropertiesFile.exists()) {

@@ -37,8 +37,10 @@ import { SplashScreen } from '../screens/SplashScreen';
 import { StoryScreen } from '../screens/StoryScreen';
 import { VisitingCardScreen } from '../screens/VisitingCardScreen';
 import { useAuth } from '../features/auth/AuthContext';
+import { PushNotificationsBridge } from '../features/notifications/PushNotifications';
 import { useUnreadCount } from '../features/chat/chatQueries';
 import { AuthNavigator } from './AuthNavigator';
+import { navigationRef } from './navigationRef';
 import { colors } from '../theme/colors';
 import { radii } from '../theme/spacing';
 import { font } from '../theme/typography';
@@ -260,8 +262,9 @@ export function RootNavigator() {
   const { booting, isAuthenticated } = useAuth();
 
   return (
-    <NavigationContainer theme={navTheme}>
+    <NavigationContainer ref={navigationRef} theme={navTheme}>
       {booting ? <SplashScreen /> : isAuthenticated ? <AppStack /> : <AuthNavigator />}
+      {isAuthenticated ? <PushNotificationsBridge /> : null}
     </NavigationContainer>
   );
 }

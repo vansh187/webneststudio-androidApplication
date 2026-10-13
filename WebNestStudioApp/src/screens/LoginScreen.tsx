@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import MCIcon from 'react-native-vector-icons/MaterialCommunityIcons';
 
-import { getErrorMessage } from '../api/client';
+import { getErrorMessage, isUnverifiedEmailError } from '../api/client';
 import { showAlert } from '../components/AppAlert';
 import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
@@ -23,7 +23,7 @@ import { radii, spacing } from '../theme/spacing';
 import { openExternal } from '../utils/linking';
 
 const schema = z.object({
-  email: z.string().email('Enter a valid email'),
+  email: z.string().trim().email('Enter a valid email'),
   password: z.string().min(1, 'Enter your password'),
 });
 
@@ -34,7 +34,7 @@ export function LoginScreen({ navigation }: Props) {
   const auth = useAuth();
   const [loading, setLoading] = useState(false);
   const [bioLoading, setBioLoading] = useState(false);
-  const { control, handleSubmit, formState } = useForm<FormValues>({
+  const { control, handleSubmit, formState, getValues } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: { email: '', password: '' },
   });
@@ -56,6 +56,10 @@ export function LoginScreen({ navigation }: Props) {
       }
       // success flips auth state and the app tree mounts automatically
     } catch (error) {
+      if (isUnverifiedEmailError(error)) {
+        showAlert("Couldn't sign in", 'Log in with your email and password to verify your account.');
+        return;
+      }
       showAlert(
         "Couldn't sign in",
         getErrorMessage(error, 'Use your email and password this time.'),
@@ -93,6 +97,12 @@ export function LoginScreen({ navigation }: Props) {
         );
       }
     } catch (error) {
+      if (isUnverifiedEmailError(error)) {
+        // Account exists but was never confirmed — send a fresh code and let
+        // them finish; verifying signs them straight in.
+        navigation.navigate('VerifyOtp', { email: values.email, sendCode: true });
+        return;
+      }
       showAlert('Login failed', getErrorMessage(error, 'Check your email and password.'));
     } finally {
       setLoading(false);
@@ -115,6 +125,8 @@ export function LoginScreen({ navigation }: Props) {
           render={({ field }) => (
             <FormInput
               autoCapitalize="none"
+              autoComplete="email"
+              autoCorrect={false}
               keyboardType="email-address"
               label="Email"
               value={field.value}
@@ -130,12 +142,23 @@ export function LoginScreen({ navigation }: Props) {
             <FormInput
               label="Password"
               secureTextEntry
+              autoComplete="current-password"
               value={field.value}
               onChangeText={field.onChange}
               error={formState.errors.password?.message}
             />
           )}
         />
+        <Pressable
+          style={styles.forgot}
+          hitSlop={8}
+          onPress={() =>
+            navigation.navigate('ForgotPassword', { email: getValues('email').trim() || undefined })
+          }>
+          <Text variant="caption" tone="gold">
+            Forgot password?
+          </Text>
+        </Pressable>
         <Button title="Log in" icon="arrow-right" loading={loading} onPress={handleSubmit(onSubmit)} />
 
         {auth.biometricEnabled ? (
@@ -219,6 +242,10 @@ const styles = StyleSheet.create({
   bioText: {
     fontSize: 13,
     letterSpacing: 1.4,
+  },
+  forgot: {
+    alignSelf: 'flex-end',
+    marginTop: -spacing.sm,
   },
   altRow: {
     alignItems: 'center',

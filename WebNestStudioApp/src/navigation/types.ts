@@ -3,11 +3,13 @@ import type { NavigatorScreenParams } from '@react-navigation/native';
 export type AuthStackParamList = {
   Signup: undefined;
   Login: undefined;
-  VerifyOtp: { email: string };
+  /** `sendCode`: request a fresh code on arrival (the signup one may have expired). */
+  VerifyOtp: { email: string; sendCode?: boolean };
+  ForgotPassword: { email?: string } | undefined;
 };
 
 export type RootStackParamList = {
-  MainTabs: undefined;
+  MainTabs: NavigatorScreenParams<MainTabParamList> | undefined;
   Services: undefined;
   Story: undefined;
   ProjectInquiry: undefined;

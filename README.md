@@ -29,6 +29,41 @@ WebNestStudioApp/     React Native 0.87 app (this is what ships)
 | Endpoint map | `src/api/webnestApi.ts` → FastAPI `/api/auth`, `/api/home`, `/api/services`, `/api/portfolio`, `/api/blog`, `/api/leads`, `/api/me` |
 | Session storage | `react-native-keychain` via `src/api/tokenStore.ts` |
 
+## Accounts & email verification
+
+Production has `EMAIL_ENABLED=true`, so a new account must confirm a 6-digit
+email code before it can log in. The app covers every way into that state:
+
+- **Signup** → Verify screen; entering the code signs the user straight in.
+- **Login on an unverified account** (backend 401 "Please verify…") → Verify
+  screen with a fresh code sent automatically.
+- **Signup with an email that already exists** → tries the typed password:
+  signs in, or routes to Verify, or offers Log in / Reset password.
+- **Forgot password** (Login screen link) → `password_reset` code + new
+  password → signed in.
+
+Resend buttons count down the backend's 60 s cooldown.
+
+## Push notifications (chat + new blog posts)
+
+Firebase Cloud Messaging. The backend (`services/push_service.py`) pushes every
+new chat message to the other members' devices, and each newly published blog
+post to the `blog` topic. Tapping a notification opens that chat room / article;
+while the app is open an in-app banner is shown instead.
+
+One-time setup (until it's done, the app builds and runs with push switched off):
+
+1. Firebase console → create/choose a project → **Add app → Android**, package
+   `com.webneststudio.app`. Download `google-services.json` into
+   `WebNestStudioApp/android/app/` (gitignored — it is per-project config).
+2. Project settings → **Service accounts → Generate new private key**. Paste the
+   whole JSON as the Render env var `FIREBASE_SERVICE_ACCOUNT_JSON` on the
+   backend. Never put it in `WebNestStudioApp/.env` (that ships inside the APK).
+3. Rebuild the app (native change) and deploy the backend.
+
+Android channels "Chat messages" and "New blog posts" are created in
+`MainApplication.kt`, so users can mute either one in system settings.
+
 ## Run it (USB debugging device)
 
 ```bash

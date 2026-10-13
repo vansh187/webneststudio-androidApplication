@@ -5,7 +5,7 @@ import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 
-import { getErrorMessage } from '../api/client';
+import { getErrorMessage, getHttpStatus, isUnverifiedEmailError } from '../api/client';
 import { showAlert } from '../components/AppAlert';
 import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
@@ -21,9 +21,9 @@ import { spacing } from '../theme/spacing';
 import { openExternal } from '../utils/linking';
 
 const schema = z.object({
-  full_name: z.string().min(2, 'Enter your name'),
-  email: z.string().email('Enter a valid email'),
-  phone_number: z.string().min(8, 'Enter a valid phone number'),
+  full_name: z.string().trim().min(2, 'Enter your name'),
+  email: z.string().trim().email('Enter a valid email'),
+  phone_number: z.string().trim().min(8, 'Enter a valid phone number'),
   password: z.string().min(8, 'Use at least 8 characters'),
 });
 
@@ -48,9 +48,39 @@ export function SignupScreen({ navigation }: Props) {
         navigation.replace('VerifyOtp', { email: values.email });
       }
     } catch (error) {
-      showAlert('Could not create account', getErrorMessage(error));
+      if (getHttpStatus(error) === 409) {
+        await handleExistingAccount(values);
+      } else {
+        showAlert('Could not create account', getErrorMessage(error));
+      }
     } finally {
       setLoading(false);
+    }
+  }
+
+  // The email is already registered — most often by this same person on an
+  // earlier attempt that never got verified. Try their password: it either
+  // signs them in, or tells us the account just needs its email confirmed.
+  async function handleExistingAccount(values: FormValues) {
+    try {
+      await auth.login(values.email, values.password);
+      // Signed in — the app tree replaces the auth screens.
+    } catch (loginError) {
+      if (isUnverifiedEmailError(loginError)) {
+        navigation.replace('VerifyOtp', { email: values.email, sendCode: true });
+        return;
+      }
+      showAlert(
+        'Account already exists',
+        `${values.email} is already registered. Log in, or reset your password if you've forgotten it.`,
+        [
+          {
+            text: 'Reset password',
+            onPress: () => navigation.navigate('ForgotPassword', { email: values.email }),
+          },
+          { text: 'Log in', onPress: () => navigation.replace('Login') },
+        ],
+      );
     }
   }
 
@@ -84,6 +114,8 @@ export function SignupScreen({ navigation }: Props) {
           render={({ field }) => (
             <FormInput
               autoCapitalize="none"
+              autoComplete="email"
+              autoCorrect={false}
               keyboardType="email-address"
               label="Email"
               value={field.value}
@@ -112,6 +144,7 @@ export function SignupScreen({ navigation }: Props) {
             <FormInput
               label="Password"
               secureTextEntry
+              autoComplete="new-password"
               hint="At least 8 characters"
               value={field.value}
               onChangeText={field.onChange}

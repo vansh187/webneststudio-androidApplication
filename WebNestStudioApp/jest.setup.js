@@ -41,3 +41,20 @@ jest.mock('react-native-keychain', () => ({
 }));
 
 jest.mock('react-native-vector-icons/Feather', () => 'Icon');
+
+// No Firebase config under jest: push helpers see "not available" and no-op.
+jest.mock('@react-native-firebase/app', () => ({
+  getApps: jest.fn(() => []),
+}));
+
+jest.mock('@react-native-firebase/messaging', () => ({
+  getMessaging: jest.fn(() => ({})),
+  getToken: jest.fn(async () => 'test-fcm-token'),
+  getInitialNotification: jest.fn(async () => null),
+  onMessage: jest.fn(() => () => {}),
+  onNotificationOpenedApp: jest.fn(() => () => {}),
+  onTokenRefresh: jest.fn(() => () => {}),
+  setBackgroundMessageHandler: jest.fn(),
+  subscribeToTopic: jest.fn(async () => undefined),
+  unsubscribeFromTopic: jest.fn(async () => undefined),
+}));

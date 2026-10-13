@@ -69,6 +69,8 @@ api.interceptors.response.use(
       '/api/auth/signup',
       '/api/auth/refresh',
       '/api/auth/verify-otp',
+      '/api/auth/resend-otp',
+      '/api/auth/reset-password',
     ].some(item => path.startsWith(item));
 
     if (status === 503 && config && !config._retried503) {
@@ -103,6 +105,28 @@ api.interceptors.response.use(
 /** HTTP status of a failed request, or `undefined` for network/timeout errors. */
 export function getHttpStatus(error: unknown): number | undefined {
   return axios.isAxiosError(error) ? error.response?.status : undefined;
+}
+
+/**
+ * Login was refused only because the email isn't verified yet. The backend
+ * answers 401 "Please verify your email address before logging in".
+ */
+export function isUnverifiedEmailError(error: unknown): boolean {
+  if (!axios.isAxiosError(error) || error.response?.status !== 401) {
+    return false;
+  }
+  const detail = (error.response.data as { detail?: unknown } | undefined)?.detail;
+  return typeof detail === 'string' && /verify/i.test(detail);
+}
+
+/** Seconds from a 429 "Please wait 42s before requesting another code", if present. */
+export function getRetryAfterSeconds(error: unknown): number | undefined {
+  if (!axios.isAxiosError(error) || error.response?.status !== 429) {
+    return undefined;
+  }
+  const detail = (error.response.data as { detail?: unknown } | undefined)?.detail;
+  const match = typeof detail === 'string' ? detail.match(/(\d+)\s*s\b/) : null;
+  return match ? Number(match[1]) : undefined;
 }
 
 export function getErrorMessage(

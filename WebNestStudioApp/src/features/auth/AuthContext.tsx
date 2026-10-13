@@ -1,8 +1,19 @@
-import React, { createContext, PropsWithChildren, useContext, useEffect, useMemo, useState } from 'react';
+import React, {
+  createContext,
+  PropsWithChildren,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import axios from 'axios';
 
 import { clearSession, getSession, setSession } from '../../api/tokenStore';
-import { webnestApi } from '../../api/webnestApi';
+import { isUnverifiedEmailError } from '../../api/client';
+import { OtpPurpose, webnestApi } from '../../api/webnestApi';
+import { unregisterFromPush } from '../notifications/push';
 import { User } from '../../types/api';
 import {
   BiometryType,
@@ -24,8 +35,15 @@ type AuthContextValue = {
     phone_number?: string;
     password: string;
   }) => Promise<User>;
-  verifyOtp: (email: string, otpCode: string) => Promise<void>;
-  resendOtp: (email: string) => Promise<void>;
+  /**
+   * Confirms the email. If this session already knows the password for that
+   * email (from signup or a login that was refused as unverified) it signs in
+   * too and resolves `true`; otherwise resolves `false` and the UI routes to Login.
+   */
+  verifyOtp: (email: string, otpCode: string) => Promise<boolean>;
+  resendOtp: (email: string, purpose?: OtpPurpose) => Promise<void>;
+  /** Sets a new password from a `password_reset` code, then signs in with it. */
+  resetPassword: (email: string, otpCode: string, newPassword: string) => Promise<void>;
   logout: () => Promise<void>;
   deleteAccount: () => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -45,11 +63,31 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const [booting, setBooting] = useState(true);
   const [biometry, setBiometry] = useState<BiometryType | null>(null);
   const [biometricEnabled, setBiometricEnabled] = useState(false);
+  // Held in memory only (never persisted) so verifying an email can finish the
+  // sign-in without making the user type their password a second time.
+  const pendingCredentials = useRef<{ email: string; password: string } | null>(null);
 
-  async function refreshUser() {
+  const refreshUser = useCallback(async () => {
     const profile = await webnestApi.me();
     setUser(profile);
-  }
+  }, []);
+
+  const signIn = useCallback(async (email: string, password: string) => {
+    try {
+      const tokens = await webnestApi.login(email, password);
+      await setSession({
+        accessToken: tokens.access_token,
+        refreshToken: tokens.refresh_token,
+      });
+    } catch (err) {
+      if (isUnverifiedEmailError(err)) {
+        pendingCredentials.current = { email, password };
+      }
+      throw err;
+    }
+    pendingCredentials.current = null;
+    await refreshUser();
+  }, [refreshUser]);
 
   useEffect(() => {
     let mounted = true;
@@ -88,24 +126,41 @@ export function AuthProvider({ children }: PropsWithChildren) {
       user,
       booting,
       isAuthenticated: Boolean(user),
-      login: async (email, password) => {
-        const tokens = await webnestApi.login(email, password);
-        await setSession({
-          accessToken: tokens.access_token,
-          refreshToken: tokens.refresh_token,
-        });
-        await refreshUser();
+      login: signIn,
+      signup: async payload => {
+        const created = await webnestApi.signup(payload);
+        if (!created.is_verified) {
+          pendingCredentials.current = { email: payload.email, password: payload.password };
+        }
+        return created;
       },
-      signup: webnestApi.signup,
-      // Verify only confirms the email — there is no session yet, so we do NOT
-      // set the user here. The UI then routes to Login to establish a session.
       verifyOtp: async (email, otpCode) => {
         await webnestApi.verifyOtp(email, otpCode);
+        const pending = pendingCredentials.current;
+        if (!pending || pending.email.toLowerCase() !== email.toLowerCase()) {
+          return false;
+        }
+        try {
+          await signIn(pending.email, pending.password);
+          return true;
+        } catch {
+          // Verified, but the remembered password didn't work (e.g. it was
+          // typed into Signup for an account that already existed).
+          pendingCredentials.current = null;
+          return false;
+        }
       },
-      resendOtp: async email => {
-        await webnestApi.resendOtp(email);
+      resendOtp: async (email, purpose = 'signup') => {
+        await webnestApi.resendOtp(email, purpose);
+      },
+      resetPassword: async (email, otpCode, newPassword) => {
+        await webnestApi.resetPassword(email, otpCode, newPassword);
+        await signIn(email, newPassword);
       },
       logout: async () => {
+        pendingCredentials.current = null;
+        // Before clearSession: the unregister call needs the access token.
+        await unregisterFromPush();
         await clearSession();
         setUser(null);
       },
@@ -137,12 +192,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
           return false;
         }
         try {
-          const tokens = await webnestApi.login(creds.email, creds.password);
-          await setSession({
-            accessToken: tokens.access_token,
-            refreshToken: tokens.refresh_token,
-          });
-          await refreshUser();
+          await signIn(creds.email, creds.password);
           return true;
         } catch (err) {
           // Any 4xx = the stored credentials are no longer valid (password
@@ -158,7 +208,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
         }
       },
     }),
-    [booting, user, biometry, biometricEnabled],
+    [booting, user, biometry, biometricEnabled, refreshUser, signIn],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
