@@ -1,7 +1,7 @@
 import type { NavigatorScreenParams } from '@react-navigation/native';
 
 export type AuthStackParamList = {
-  Signup: undefined;
+  Signup: { plan?: 'free' | 'prime' } | undefined;
   Login: undefined;
   /** `sendCode`: request a fresh code on arrival (the signup one may have expired). */
   VerifyOtp: { email: string; sendCode?: boolean };
@@ -21,6 +21,8 @@ export type RootStackParamList = {
   AdminAssignProject: undefined;
   AdminProjectDetail: { projectId: string };
   AdminReports: undefined;
+  PrimePlan: undefined;
+  AiChat: undefined;
 };
 
 export type ChatStackParamList = {

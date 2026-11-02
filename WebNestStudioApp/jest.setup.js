@@ -41,6 +41,17 @@ jest.mock('react-native-keychain', () => ({
 }));
 
 jest.mock('react-native-vector-icons/Feather', () => 'Icon');
+jest.mock('react-native-vector-icons/MaterialCommunityIcons', () => 'CrownIcon');
+
+jest.mock('react-native-razorpay', () => ({
+  __esModule: true,
+  default: { open: jest.fn() },
+}));
+
+jest.mock('@react-native-clipboard/clipboard', () => ({
+  __esModule: true,
+  default: { setString: jest.fn() },
+}));
 
 // No Firebase config under jest: push helpers see "not available" and no-op.
 jest.mock('@react-native-firebase/app', () => ({

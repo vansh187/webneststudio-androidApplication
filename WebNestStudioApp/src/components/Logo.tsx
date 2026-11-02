@@ -3,6 +3,7 @@ import { Image, StyleSheet, View } from 'react-native';
 
 import { colors } from '../theme/colors';
 import { font } from '../theme/typography';
+import { PrimeTag } from './PrimeBadge';
 import { Text } from './Text';
 
 const MARK = require('../assets/logo.png');
@@ -15,14 +16,19 @@ const WORD: Record<Size, number> = { sm: 15, md: 18, lg: 24, xl: 30 };
 type Props = {
   size?: Size;
   showWordmark?: boolean;
+  /** Shows the crowned PRIME tag on top of the mark. */
+  prime?: boolean;
 };
 
-export function Logo({ size = 'md', showWordmark = true }: Props) {
+export function Logo({ size = 'md', showWordmark = true, prime = false }: Props) {
   const ring = RING[size];
   return (
     <View style={styles.row}>
-      <View style={[styles.markWrap, { width: ring, height: ring, borderRadius: ring / 2 }]}>
-        <Image source={MARK} style={styles.mark} resizeMode="cover" />
+      <View style={styles.markColumn}>
+        {prime ? <PrimeTag /> : null}
+        <View style={[styles.markWrap, { width: ring, height: ring, borderRadius: ring / 2 }]}>
+          <Image source={MARK} style={styles.mark} resizeMode="cover" />
+        </View>
       </View>
       {showWordmark ? (
         <Text style={[styles.word, { fontSize: WORD[size] }]}>
@@ -38,6 +44,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     gap: 12,
+  },
+  markColumn: {
+    alignItems: 'center',
+    gap: 3,
   },
   markWrap: {
     borderColor: colors.borderAccent,

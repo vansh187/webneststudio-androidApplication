@@ -13,6 +13,7 @@ import axios from 'axios';
 import { clearSession, getSession, setSession } from '../../api/tokenStore';
 import { isUnverifiedEmailError } from '../../api/client';
 import { OtpPurpose, webnestApi } from '../../api/webnestApi';
+import { closeChat } from '../assistant/chatStore';
 import { unregisterFromPush } from '../notifications/push';
 import { User } from '../../types/api';
 import {
@@ -161,11 +162,17 @@ export function AuthProvider({ children }: PropsWithChildren) {
         pendingCredentials.current = null;
         // Before clearSession: the unregister call needs the access token.
         await unregisterFromPush();
+        if (user) {
+          await closeChat(user.id);
+        }
         await clearSession();
         setUser(null);
       },
       deleteAccount: async () => {
         await webnestApi.deleteAccount();
+        if (user) {
+          await closeChat(user.id);
+        }
         await disableBiometricLogin();
         setBiometricEnabled(false);
         await clearSession();

@@ -39,14 +39,36 @@ async function performRefresh() {
       refreshToken: data.refresh_token,
     });
     return true;
-  } catch {
-    await clearSession();
+  } catch (error) {
+    // A 4xx means the refresh token was refused. A timeout, network error or 5xx
+    // says nothing about it, so a brief outage mustn't sign the user out.
+    const status = axios.isAxiosError(error) ? error.response?.status : undefined;
+    if (status !== undefined && status >= 400 && status < 500) {
+      await clearSession();
+    }
     return false;
   }
 }
 
+/**
+ * Refreshes the access token, sharing one in-flight attempt with the axios
+ * interceptor. For requests that can't go through axios (the AI chat stream).
+ */
+export function refreshSession(): Promise<boolean> {
+  if (!refreshPromise) {
+    refreshPromise = performRefresh().finally(() => {
+      refreshPromise = null;
+    });
+  }
+  return refreshPromise;
+}
+
 api.interceptors.request.use(async config => {
-  config.timeout = hasCompletedFirstRequest ? WARM_TIMEOUT : COLD_START_TIMEOUT;
+  // The instance default is COLD_START_TIMEOUT, so any other value was chosen
+  // by the caller (or an earlier pass here on a retried config): leave it.
+  if (config.timeout === COLD_START_TIMEOUT) {
+    config.timeout = hasCompletedFirstRequest ? WARM_TIMEOUT : COLD_START_TIMEOUT;
+  }
   const session = await getSession();
   if (session?.accessToken) {
     config.headers.Authorization = `Bearer ${session.accessToken}`;
@@ -83,12 +105,7 @@ api.interceptors.response.use(
 
     if (status === 401 && config && !config._retriedAuth && !isAuthFreePath) {
       config._retriedAuth = true;
-      if (!refreshPromise) {
-        refreshPromise = performRefresh().finally(() => {
-          refreshPromise = null;
-        });
-      }
-      const refreshed = await refreshPromise;
+      const refreshed = await refreshSession();
       if (refreshed) {
         const session = await getSession();
         if (session?.accessToken) {

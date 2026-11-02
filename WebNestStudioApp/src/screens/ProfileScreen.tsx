@@ -13,6 +13,7 @@ import { showAlert } from '../components/AppAlert';
 import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
+import { PrimeBadge } from '../components/PrimeBadge';
 import { ProjectErrorBoundary } from '../components/ProjectErrorBoundary';
 import { ProjectPipeline } from '../components/ProjectPipeline';
 import { Screen } from '../components/Screen';
@@ -24,6 +25,8 @@ import { CONTACT, LEGAL } from '../data/content';
 import { useAuth } from '../features/auth/AuthContext';
 import { BiometricToggle } from '../features/auth/BiometricToggle';
 import { clearAvatar, getAvatar, setAvatar } from '../features/profile/avatarStore';
+import { useMembership } from '../features/prime/primeQueries';
+import { useOpenWebnestAi } from '../features/prime/useOpenWebnestAi';
 import { deriveStages } from '../features/projects/normalize';
 import { useMyProjects } from '../features/projects/projectQueries';
 import {
@@ -46,6 +49,8 @@ const PICKER_OPTIONS = {
 export function ProfileScreen() {
   const navigation = useNavigation<any>();
   const auth = useAuth();
+  const membership = useMembership();
+  const openWebnestAi = useOpenWebnestAi();
 
   const projectsQuery = useMyProjects();
   const projects = useMemo(() => projectsQuery.data ?? [], [projectsQuery.data]);
@@ -213,7 +218,10 @@ export function ProfileScreen() {
   return (
     <Screen
       refreshing={projectsQuery.isFetching}
-      onRefresh={() => projectsQuery.refetch()}>
+      onRefresh={() => {
+        projectsQuery.refetch();
+        membership.refetch();
+      }}>
       <View style={styles.identity}>
         <Pressable
           onPress={changePhoto}
@@ -239,6 +247,12 @@ export function ProfileScreen() {
           <Text variant="rowTitle">{auth.user?.full_name || 'Client'}</Text>
           <Text variant="muted">{auth.user?.email}</Text>
           {auth.user?.role ? <Badge label={auth.user.role} tone="neutral" /> : null}
+          {membership.data?.is_prime ? (
+            <PrimeBadge
+              label={membership.data.member_label || 'WebNest Prime Member'}
+              expiresAt={membership.data.expires_at}
+            />
+          ) : null}
         </View>
       </View>
 
@@ -329,6 +343,11 @@ export function ProfileScreen() {
       </View>
 
       <View style={styles.links}>
+        <LinkRow
+          icon="cpu"
+          label={membership.data?.is_prime ? 'WebNest AI' : 'Join WebNest Prime'}
+          onPress={openWebnestAi}
+        />
         {auth.user?.role === 'admin' ? (
           <LinkRow
             icon="briefcase"
