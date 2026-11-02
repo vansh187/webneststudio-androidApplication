@@ -5,6 +5,9 @@
 # Local environment file — real values come from .env.example or code defaults.
 WebNestStudioApp/.env
 
+# Firebase project config for push notifications - added per machine (see README).
+WebNestStudioApp/android/app/google-services.json
+
 # OS
 .DS_Store
 Thumbs.db

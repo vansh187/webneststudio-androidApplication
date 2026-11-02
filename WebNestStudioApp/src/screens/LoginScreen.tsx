@@ -6,24 +6,27 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import MCIcon from 'react-native-vector-icons/MaterialCommunityIcons';
 
-import { getErrorMessage } from '../api/client';
+import { getErrorMessage, isUnverifiedEmailError } from '../api/client';
 import { showAlert } from '../components/AppAlert';
 import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { FormInput } from '../components/FormInput';
 import { Logo } from '../components/Logo';
+import { PlanOption } from '../components/PlanOption';
 import { Screen } from '../components/Screen';
 import { Text } from '../components/Text';
 import { LEGAL } from '../data/content';
 import { useAuth } from '../features/auth/AuthContext';
+import { PRIME_OFFER } from '../features/prime/access';
+import { rememberPrimeIntent, setNextLoginWantsPrime } from '../features/prime/signupIntent';
 import { AuthStackParamList } from '../navigation/types';
 import { colors } from '../theme/colors';
 import { radii, spacing } from '../theme/spacing';
 import { openExternal } from '../utils/linking';
 
 const schema = z.object({
-  email: z.string().email('Enter a valid email'),
+  email: z.string().trim().email('Enter a valid email'),
   password: z.string().min(1, 'Enter your password'),
 });
 
@@ -34,7 +37,8 @@ export function LoginScreen({ navigation }: Props) {
   const auth = useAuth();
   const [loading, setLoading] = useState(false);
   const [bioLoading, setBioLoading] = useState(false);
-  const { control, handleSubmit, formState } = useForm<FormValues>({
+  const [joinPrime, setJoinPrime] = useState(false);
+  const { control, handleSubmit, formState, getValues } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: { email: '', password: '' },
   });
@@ -48,14 +52,22 @@ export function LoginScreen({ navigation }: Props) {
       return;
     }
     setBioLoading(true);
+    // Set before signing in: the plan screen opens as soon as the app tree mounts.
+    setNextLoginWantsPrime(joinPrime);
     try {
       const ok = await auth.loginWithBiometrics();
       if (!ok) {
+        setNextLoginWantsPrime(false);
         // user cancelled the prompt — stay on the form silently
         return;
       }
       // success flips auth state and the app tree mounts automatically
     } catch (error) {
+      setNextLoginWantsPrime(false);
+      if (isUnverifiedEmailError(error)) {
+        showAlert("Couldn't sign in", 'Log in with your email and password to verify your account.');
+        return;
+      }
       showAlert(
         "Couldn't sign in",
         getErrorMessage(error, 'Use your email and password this time.'),
@@ -63,10 +75,11 @@ export function LoginScreen({ navigation }: Props) {
     } finally {
       setBioLoading(false);
     }
-  }, [auth, bioLoading, loading]);
+  }, [auth, bioLoading, joinPrime, loading]);
 
   async function onSubmit(values: FormValues) {
     setLoading(true);
+    setNextLoginWantsPrime(joinPrime);
     try {
       await auth.login(values.email, values.password);
       // Signed in. If the device can do biometrics and it isn't set up yet,
@@ -93,6 +106,16 @@ export function LoginScreen({ navigation }: Props) {
         );
       }
     } catch (error) {
+      setNextLoginWantsPrime(false);
+      if (isUnverifiedEmailError(error)) {
+        // Account exists but was never confirmed — send a fresh code and let
+        // them finish; verifying signs them straight in.
+        if (joinPrime) {
+          await rememberPrimeIntent(values.email);
+        }
+        navigation.navigate('VerifyOtp', { email: values.email, sendCode: true });
+        return;
+      }
       showAlert('Login failed', getErrorMessage(error, 'Check your email and password.'));
     } finally {
       setLoading(false);
@@ -115,6 +138,8 @@ export function LoginScreen({ navigation }: Props) {
           render={({ field }) => (
             <FormInput
               autoCapitalize="none"
+              autoComplete="email"
+              autoCorrect={false}
               keyboardType="email-address"
               label="Email"
               value={field.value}
@@ -130,11 +155,30 @@ export function LoginScreen({ navigation }: Props) {
             <FormInput
               label="Password"
               secureTextEntry
+              autoComplete="current-password"
               value={field.value}
               onChangeText={field.onChange}
               error={formState.errors.password?.message}
             />
           )}
+        />
+        <Pressable
+          style={styles.forgot}
+          hitSlop={8}
+          onPress={() =>
+            navigation.navigate('ForgotPassword', { email: getValues('email').trim() || undefined })
+          }>
+          <Text variant="caption" tone="gold">
+            Forgot password?
+          </Text>
+        </Pressable>
+        <PlanOption
+          prime
+          role="checkbox"
+          title="Become a WebNest Prime Member"
+          detail={`${PRIME_OFFER}. You'll go to payment after logging in.`}
+          selected={joinPrime}
+          onPress={() => setJoinPrime(current => !current)}
         />
         <Button title="Log in" icon="arrow-right" loading={loading} onPress={handleSubmit(onSubmit)} />
 
@@ -169,6 +213,14 @@ export function LoginScreen({ navigation }: Props) {
         <Text variant="body">New to WebNest Studio? </Text>
         <Text variant="bodyStrong" tone="gold">
           Create an account
+        </Text>
+      </Pressable>
+      <Pressable
+        style={styles.altRow}
+        onPress={() => navigation.navigate('Signup', { plan: 'prime' })}>
+        <Text variant="body">New here? </Text>
+        <Text variant="bodyStrong" tone="gold">
+          Join as a Prime member
         </Text>
       </Pressable>
       <Pressable style={styles.altRow} onPress={() => openExternal(LEGAL.privacyPolicyHref)}>
@@ -219,6 +271,10 @@ const styles = StyleSheet.create({
   bioText: {
     fontSize: 13,
     letterSpacing: 1.4,
+  },
+  forgot: {
+    alignSelf: 'flex-end',
+    marginTop: -spacing.sm,
   },
   altRow: {
     alignItems: 'center',

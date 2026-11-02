@@ -5,34 +5,40 @@ import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 
-import { getErrorMessage } from '../api/client';
+import { getErrorMessage, getHttpStatus, isUnverifiedEmailError } from '../api/client';
 import { showAlert } from '../components/AppAlert';
 import { Badge } from '../components/Badge';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { FormInput } from '../components/FormInput';
 import { Logo } from '../components/Logo';
+import { PlanOption } from '../components/PlanOption';
 import { Screen } from '../components/Screen';
 import { Text } from '../components/Text';
 import { LEGAL } from '../data/content';
 import { useAuth } from '../features/auth/AuthContext';
+import { PRIME_OFFER } from '../features/prime/access';
+import { forgetPrimeIntent, rememberPrimeIntent } from '../features/prime/signupIntent';
 import { AuthStackParamList } from '../navigation/types';
 import { spacing } from '../theme/spacing';
 import { openExternal } from '../utils/linking';
 
+type Plan = 'free' | 'prime';
+
 const schema = z.object({
-  full_name: z.string().min(2, 'Enter your name'),
-  email: z.string().email('Enter a valid email'),
-  phone_number: z.string().min(8, 'Enter a valid phone number'),
+  full_name: z.string().trim().min(2, 'Enter your name'),
+  email: z.string().trim().email('Enter a valid email'),
+  phone_number: z.string().trim().min(8, 'Enter a valid phone number'),
   password: z.string().min(8, 'Use at least 8 characters'),
 });
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'Signup'>;
 type FormValues = z.infer<typeof schema>;
 
-export function SignupScreen({ navigation }: Props) {
+export function SignupScreen({ navigation, route }: Props) {
   const auth = useAuth();
   const [loading, setLoading] = useState(false);
+  const [plan, setPlan] = useState<Plan>(route?.params?.plan ?? 'free');
   const { control, handleSubmit, formState } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: { full_name: '', email: '', phone_number: '', password: '' },
@@ -41,6 +47,8 @@ export function SignupScreen({ navigation }: Props) {
   async function onSubmit(values: FormValues) {
     setLoading(true);
     try {
+      // Set before signing in: the plan screen opens as soon as the app tree mounts.
+      await (plan === 'prime' ? rememberPrimeIntent(values.email) : forgetPrimeIntent(values.email));
       const user = await auth.signup(values);
       if (user.is_verified) {
         navigation.replace('Login');
@@ -48,9 +56,41 @@ export function SignupScreen({ navigation }: Props) {
         navigation.replace('VerifyOtp', { email: values.email });
       }
     } catch (error) {
-      showAlert('Could not create account', getErrorMessage(error));
+      if (getHttpStatus(error) === 409) {
+        await handleExistingAccount(values);
+      } else {
+        await forgetPrimeIntent(values.email);
+        showAlert('Could not create account', getErrorMessage(error));
+      }
     } finally {
       setLoading(false);
+    }
+  }
+
+  // The email is already registered — most often by this same person on an
+  // earlier attempt that never got verified. Try their password: it either
+  // signs them in, or tells us the account just needs its email confirmed.
+  async function handleExistingAccount(values: FormValues) {
+    try {
+      await auth.login(values.email, values.password);
+      // Signed in — the app tree replaces the auth screens.
+    } catch (loginError) {
+      if (isUnverifiedEmailError(loginError)) {
+        navigation.replace('VerifyOtp', { email: values.email, sendCode: true });
+        return;
+      }
+      await forgetPrimeIntent(values.email);
+      showAlert(
+        'Account already exists',
+        `${values.email} is already registered. Log in, or reset your password if you've forgotten it.`,
+        [
+          {
+            text: 'Reset password',
+            onPress: () => navigation.navigate('ForgotPassword', { email: values.email }),
+          },
+          { text: 'Log in', onPress: () => navigation.replace('Login') },
+        ],
+      );
     }
   }
 
@@ -84,6 +124,8 @@ export function SignupScreen({ navigation }: Props) {
           render={({ field }) => (
             <FormInput
               autoCapitalize="none"
+              autoComplete="email"
+              autoCorrect={false}
               keyboardType="email-address"
               label="Email"
               value={field.value}
@@ -112,6 +154,7 @@ export function SignupScreen({ navigation }: Props) {
             <FormInput
               label="Password"
               secureTextEntry
+              autoComplete="new-password"
               hint="At least 8 characters"
               value={field.value}
               onChangeText={field.onChange}
@@ -119,7 +162,28 @@ export function SignupScreen({ navigation }: Props) {
             />
           )}
         />
-        <Button title="Create account" icon="arrow-right" loading={loading} onPress={handleSubmit(onSubmit)} />
+        <View style={styles.plans} accessibilityRole="radiogroup">
+          <Text variant="label">Choose your membership</Text>
+          <PlanOption
+            title="Free account"
+            detail="Track projects, milestones and files."
+            selected={plan === 'free'}
+            onPress={() => setPlan('free')}
+          />
+          <PlanOption
+            prime
+            title="WebNest Prime Member"
+            detail={`${PRIME_OFFER}. You'll pay with Razorpay after confirming your email.`}
+            selected={plan === 'prime'}
+            onPress={() => setPlan('prime')}
+          />
+        </View>
+        <Button
+          title={plan === 'prime' ? 'Continue to Prime' : 'Create account'}
+          icon="arrow-right"
+          loading={loading}
+          onPress={handleSubmit(onSubmit)}
+        />
       </Card>
 
       <Pressable style={styles.altRow} onPress={() => navigation.navigate('Login')}>
@@ -140,6 +204,9 @@ export function SignupScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
+  plans: {
+    gap: spacing.sm,
+  },
   content: {
     gap: spacing.xl,
     paddingTop: spacing.xl,

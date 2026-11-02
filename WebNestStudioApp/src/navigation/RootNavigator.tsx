@@ -18,6 +18,7 @@ import { AdminAssignProjectScreen } from '../screens/admin/AdminAssignProjectScr
 import { AdminProjectDetailScreen } from '../screens/admin/AdminProjectDetailScreen';
 import { AdminProjectListScreen } from '../screens/admin/AdminProjectListScreen';
 import { AdminReportsScreen } from '../screens/admin/AdminReportsScreen';
+import { AiChatScreen } from '../screens/AiChatScreen';
 import { BlogDetailScreen } from '../screens/BlogDetailScreen';
 import { BlogScreen } from '../screens/BlogScreen';
 import { ChatListScreen } from '../screens/chat/ChatListScreen';
@@ -29,6 +30,7 @@ import { ContactScreen } from '../screens/ContactScreen';
 import { HomeScreen } from '../screens/HomeScreen';
 import { PortfolioDetailScreen } from '../screens/PortfolioDetailScreen';
 import { PortfolioScreen } from '../screens/PortfolioScreen';
+import { PrimePlanScreen } from '../screens/PrimePlanScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { ProjectDetailScreen } from '../screens/ProjectDetailScreen';
 import { ProjectInquiryScreen } from '../screens/ProjectInquiryScreen';
@@ -37,8 +39,12 @@ import { SplashScreen } from '../screens/SplashScreen';
 import { StoryScreen } from '../screens/StoryScreen';
 import { VisitingCardScreen } from '../screens/VisitingCardScreen';
 import { useAuth } from '../features/auth/AuthContext';
+import { PushNotificationsBridge } from '../features/notifications/PushNotifications';
 import { useUnreadCount } from '../features/chat/chatQueries';
+import { PrimeProvider } from '../features/prime/PrimeProvider';
+import { usePrimeSignupRedirect } from '../features/prime/useOpenWebnestAi';
 import { AuthNavigator } from './AuthNavigator';
+import { navigationRef } from './navigationRef';
 import { colors } from '../theme/colors';
 import { radii } from '../theme/spacing';
 import { font } from '../theme/typography';
@@ -144,6 +150,7 @@ function ChatNavigator() {
 function MainTabs() {
   const unread = useUnreadCount();
   const insets = useSafeAreaInsets();
+  usePrimeSignupRedirect();
   return (
     <Tab.Navigator screenOptions={opts => tabScreenOptions(opts, insets.bottom)}>
       <Tab.Screen name="Home" component={HomeScreen} />
@@ -243,6 +250,12 @@ function AppStack() {
         options={{ title: 'Reports' }}
       />
       <Stack.Screen
+        name="PrimePlan"
+        component={PrimePlanScreen}
+        options={{ title: 'WebNest Prime' }}
+      />
+      <Stack.Screen name="AiChat" component={AiChatScreen} options={{ title: 'WebNest AI' }} />
+      <Stack.Screen
         name="PortfolioDetail"
         component={PortfolioDetailScreen}
         options={({ route }) => ({ title: route.params.title || 'Project' })}
@@ -257,11 +270,20 @@ function AppStack() {
 }
 
 export function RootNavigator() {
-  const { booting, isAuthenticated } = useAuth();
+  const { booting, isAuthenticated, user } = useAuth();
 
   return (
-    <NavigationContainer theme={navTheme}>
-      {booting ? <SplashScreen /> : isAuthenticated ? <AppStack /> : <AuthNavigator />}
+    <NavigationContainer ref={navigationRef} theme={navTheme}>
+      {booting ? (
+        <SplashScreen />
+      ) : isAuthenticated ? (
+        <PrimeProvider key={user?.id}>
+          <AppStack />
+        </PrimeProvider>
+      ) : (
+        <AuthNavigator />
+      )}
+      {isAuthenticated ? <PushNotificationsBridge /> : null}
     </NavigationContainer>
   );
 }

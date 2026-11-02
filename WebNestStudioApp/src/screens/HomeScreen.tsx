@@ -23,6 +23,8 @@ import {
   STATS,
   TECH_CATEGORIES,
 } from '../data/content';
+import { useMembership } from '../features/prime/primeQueries';
+import { useOpenWebnestAi } from '../features/prime/useOpenWebnestAi';
 import { colors } from '../theme/colors';
 import { radii, spacing } from '../theme/spacing';
 import { openExternal } from '../utils/linking';
@@ -34,6 +36,8 @@ export function HomeScreen() {
   const services = useQuery({ queryKey: ['home', 'services'], queryFn: webnestApi.servicesPreview });
   const work = useQuery({ queryKey: ['home', 'featuredWork'], queryFn: webnestApi.featuredWork });
   const stats = useQuery({ queryKey: ['home', 'stats'], queryFn: webnestApi.stats });
+  const isPrime = useMembership().data?.is_prime === true;
+  const openWebnestAi = useOpenWebnestAi();
 
   const statItems = stats.data
     ? Object.entries(stats.data)
@@ -66,7 +70,7 @@ export function HomeScreen() {
       }}>
       {/* HERO */}
       <View style={styles.hero}>
-        <Logo size="md" />
+        <Logo size="md" prime={isPrime} />
         <Badge label="IT Consultancy · Web · AI" />
         <Text variant="display">
           Where Brands{'\n'}
@@ -94,6 +98,22 @@ export function HomeScreen() {
           ))}
         </View>
       </View>
+
+      {/* WEBNEST AI */}
+      <Card variant="gold" style={styles.serviceCard} onPress={openWebnestAi}>
+        <View style={styles.serviceIcon}>
+          <Icon name="cpu" size={18} color={colors.goldPrimary} />
+        </View>
+        <View style={styles.flex1}>
+          <Text variant="rowTitle">WebNest AI</Text>
+          <Text variant="muted" numberOfLines={2}>
+            {isPrime
+              ? 'Ask anything.'
+              : 'Ask anything. For WebNest Prime members.'}
+          </Text>
+        </View>
+        <Icon name="chevron-right" size={18} color={colors.textTertiary} />
+      </Card>
 
       {/* STATS */}
       <View style={styles.statGrid}>
